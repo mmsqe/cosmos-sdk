@@ -400,6 +400,8 @@ func (rs *Store) LastCommitID() types.CommitID {
 	return rs.lastCommitInfo.CommitID()
 }
 
+const path = "/tmp/data"
+
 // Commit implements Committer/CommitStore.
 func (rs *Store) Commit() types.CommitID {
 	var previousHeight, version int64
@@ -419,10 +421,15 @@ func (rs *Store) Commit() types.CommitID {
 		version = previousHeight + 1
 		fmt.Printf("mm-previous: %+v, %+v\n", previousHeight, version)
 	}
-	var i, _ = strconv.Atoi(os.Getenv("i"))
+	r, err := os.ReadFile(path)
+	if err != nil {
+		r = []byte("0")
+	}
+	stri := string(r)
+	i, _ := strconv.Atoi(stri)
 	if i < 1 {
 		i++
-		os.Setenv("i", fmt.Sprintf("%d", i))
+		os.WriteFile(path, []byte(fmt.Sprint(i)), 0644)
 		panic(fmt.Sprintf("mm-Commit %d", i))
 	}
 
