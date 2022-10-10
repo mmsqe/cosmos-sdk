@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -401,7 +403,9 @@ func (rs *Store) LastCommitID() types.CommitID {
 // Commit implements Committer/CommitStore.
 func (rs *Store) Commit() types.CommitID {
 	var previousHeight, version int64
-	if rs.lastCommitInfo.GetVersion() == 0 && rs.initialVersion > 1 {
+	last := rs.lastCommitInfo.GetVersion()
+	fmt.Printf("mm-last: %+v, %+v\n", last, rs.initialVersion)
+	if last == 0 && rs.initialVersion > 1 {
 		// This case means that no commit has been made in the store, we
 		// start from initialVersion.
 		version = rs.initialVersion
@@ -413,6 +417,13 @@ func (rs *Store) Commit() types.CommitID {
 		// in which case we start at version 1.
 		previousHeight = rs.lastCommitInfo.GetVersion()
 		version = previousHeight + 1
+		fmt.Printf("mm-previous: %+v, %+v\n", previousHeight, version)
+	}
+	var i, _ = strconv.Atoi(os.Getenv("i"))
+	if i < 1 {
+		i++
+		os.Setenv("i", fmt.Sprintf("%d", i))
+		panic(fmt.Sprintf("mm-Commit %d", i))
 	}
 
 	rs.lastCommitInfo = commitStores(version, rs.stores, rs.removalMap)
