@@ -421,6 +421,7 @@ func (rs *Store) Commit() types.CommitID {
 		version = previousHeight + 1
 		fmt.Printf("mm-previous: %+v, %+v\n", previousHeight, version)
 	}
+	rs.lastCommitInfo = commitStores(version, rs.stores, rs.removalMap)
 	r, err := os.ReadFile(path)
 	if err != nil {
 		r = []byte("0")
@@ -432,8 +433,6 @@ func (rs *Store) Commit() types.CommitID {
 		os.WriteFile(path, []byte(fmt.Sprint(i)), 0644)
 		panic(fmt.Sprintf("mm-Commit %d", i))
 	}
-
-	rs.lastCommitInfo = commitStores(version, rs.stores, rs.removalMap)
 	defer rs.flushMetadata(rs.db, version, rs.lastCommitInfo)
 
 	// remove remnants of removed stores
