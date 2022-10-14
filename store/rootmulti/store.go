@@ -406,7 +406,6 @@ const path = "/tmp/data"
 func (rs *Store) Commit() types.CommitID {
 	var previousHeight, version int64
 	last := rs.lastCommitInfo.GetVersion()
-	fmt.Printf("mm-last: %+v, %+v\n", last, rs.initialVersion)
 	if last == 0 && rs.initialVersion > 1 {
 		// This case means that no commit has been made in the store, we
 		// start from initialVersion.
@@ -419,7 +418,6 @@ func (rs *Store) Commit() types.CommitID {
 		// in which case we start at version 1.
 		previousHeight = rs.lastCommitInfo.GetVersion()
 		version = previousHeight + 1
-		fmt.Printf("mm-previous: %+v, %+v\n", previousHeight, version)
 	}
 	rs.lastCommitInfo = commitStores(version, rs.stores, rs.removalMap)
 	r, err := os.ReadFile(path)
@@ -434,7 +432,7 @@ func (rs *Store) Commit() types.CommitID {
 		panic(fmt.Sprintf("mm-Commit %d", i))
 	}
 	defer rs.flushMetadata(rs.db, version, rs.lastCommitInfo)
-
+	fmt.Printf("mm-after-flush: %+v, %+v, %x\n", rs.lastCommitInfo.Version, version, rs.lastCommitInfo.Hash())
 	// remove remnants of removed stores
 	for sk := range rs.removalMap {
 		if _, ok := rs.stores[sk]; ok {
@@ -1013,13 +1011,21 @@ func getLatestVersion(db dbm.DB) int64 {
 func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore, removalMap map[types.StoreKey]bool) *types.CommitInfo {
 	storeInfos := make([]types.StoreInfo, 0, len(storeMap))
 
+	fmt.Printf("mm-commit: %+v\n", version)
 	for key, store := range storeMap {
-		commitID := store.Commit()
-
+		last := store.LastCommitID()
+		fmt.Printf("mm-last: %+v, %+v, %x\n", key.Name(), last.Version, last.Hash)
+		var commitID types.CommitID
+		if last.Version >= version {
+			last.Version = version
+			commitID = last
+		} else {
+			commitID = store.Commit()
+		}
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}
-
+		fmt.Printf("mm-after: %+v, %+v, %x\n", key.Name(), commitID.Version, commitID.Hash)
 		if !removalMap[key] {
 			si := types.StoreInfo{}
 			si.Name = key.Name()
@@ -1062,9 +1068,9 @@ func flushCommitInfo(batch dbm.Batch, version int64, cInfo *types.CommitInfo) {
 	if err != nil {
 		panic(err)
 	}
-
 	cInfoKey := fmt.Sprintf(commitInfoKeyFmt, version)
 	batch.Set([]byte(cInfoKey), bz)
+	fmt.Printf("mm-flush: %+v, %+v, %x, %x\n", version, cInfoKey, bz, cInfo.Hash())
 }
 
 func flushLatestVersion(batch dbm.Batch, version int64) {

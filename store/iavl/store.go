@@ -129,6 +129,7 @@ func (st *Store) Commit() types.CommitID {
 	defer telemetry.MeasureSince(time.Now(), "store", "iavl", "commit")
 
 	hash, version, err := st.tree.SaveVersion()
+	fmt.Printf("mm-iavl-commit: %+v, %x\n", version, hash)
 	if err != nil {
 		panic(err)
 	}
