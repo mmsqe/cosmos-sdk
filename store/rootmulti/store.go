@@ -1023,6 +1023,9 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		// 	commitID = store.Commit()
 		// }
 		commitID := store.Commit()
+		if commitID.Version > version+1 {
+			commitID.Version = version + 1
+		}
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}
