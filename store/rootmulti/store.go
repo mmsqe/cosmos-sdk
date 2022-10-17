@@ -1015,13 +1015,14 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	for key, store := range storeMap {
 		last := store.LastCommitID()
 		fmt.Printf("mm-last: %+v, %+v, %x\n", key.Name(), last.Version, last.Hash)
-		var commitID types.CommitID
-		if last.Version >= version {
-			last.Version = version
-			commitID = last
-		} else {
-			commitID = store.Commit()
-		}
+		// var commitID types.CommitID
+		// if last.Version >= version {
+		// 	last.Version = version
+		// 	commitID = last
+		// } else {
+		// 	commitID = store.Commit()
+		// }
+		commitID := store.Commit()
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}
