@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -36,12 +37,28 @@ func (em *EventManager) Events() Events { return em.events }
 // EmitEvent stores a single Event object.
 // Deprecated: Use EmitTypedEvent
 func (em *EventManager) EmitEvent(event Event) {
+	fmt.Println("mm-AppendEvent1")
+	for _, attr := range event.Attributes {
+		key := base64.StdEncoding.EncodeToString(attr.Key)
+		value := base64.StdEncoding.EncodeToString(attr.Value)
+		fmt.Printf("mm-attr: %+v, %+v, %+v\n", event.Type, key, value)
+	}
 	em.events = em.events.AppendEvent(event)
 }
 
 // EmitEvents stores a series of Event objects.
 // Deprecated: Use EmitTypedEvents
 func (em *EventManager) EmitEvents(events Events) {
+	for _, event := range events {
+		// if event.Type == "message" {
+		fmt.Println("mm-AppendEvent2")
+		for _, attr := range event.Attributes {
+			key := base64.StdEncoding.EncodeToString(attr.Key)
+			value := base64.StdEncoding.EncodeToString(attr.Value)
+			fmt.Printf("mm-attr: %+v, %+v, %+v\n", event.Type, key, value)
+		}
+		// }
+	}
 	em.events = em.events.AppendEvents(events)
 }
 
