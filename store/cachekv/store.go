@@ -1,7 +1,6 @@
 package cachekv
 
 import (
-	"fmt"
 	"io"
 	"sync"
 
@@ -128,7 +127,6 @@ func (store *Store) ReverseIterator(start, end []byte) types.Iterator {
 }
 
 func (store *Store) iterator(start, end []byte, ascending bool) types.Iterator {
-	fmt.Println("mm-iterator")
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 
