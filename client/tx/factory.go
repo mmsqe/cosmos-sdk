@@ -9,6 +9,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
@@ -37,6 +38,7 @@ type Factory struct {
 	feeGranter         sdk.AccAddress
 	feePayer           sdk.AccAddress
 	gasPrices          sdk.DecCoins
+	extOptions         []*codectypes.Any
 	signMode           signing.SignMode
 	simulateAndExecute bool
 }
@@ -241,6 +243,12 @@ func (f Factory) WithFeePayer(fp sdk.AccAddress) Factory {
 	return f
 }
 
+// WithExtensionOptions returns a Factory with given extension options added to the existing options.
+func (f Factory) WithExtensionOptions(extOpts ...*codectypes.Any) Factory {
+	f.extOptions = extOpts
+	return f
+}
+
 // BuildUnsignedTx builds a transaction to be signed given a set of messages.
 // Once created, the fee, memo, and messages are set.
 func (f Factory) BuildUnsignedTx(msgs ...sdk.Msg) (client.TxBuilder, error) {
@@ -283,6 +291,10 @@ func (f Factory) BuildUnsignedTx(msgs ...sdk.Msg) (client.TxBuilder, error) {
 	tx.SetFeeGranter(f.feeGranter)
 	tx.SetFeePayer(f.feePayer)
 	tx.SetTimeoutHeight(f.TimeoutHeight())
+
+	if etx, ok := tx.(client.ExtendedTxBuilder); ok {
+		etx.SetExtensionOptions(f.extOptions...)
+	}
 
 	return tx, nil
 }
