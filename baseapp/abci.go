@@ -131,11 +131,26 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 // Info implements the ABCI interface.
 func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
 	lastCommitID := app.cms.LastCommitID()
+	qms := app.qms
+	if qms == nil {
+		qms = app.cms.(storetypes.MultiStore)
+	}
+	appVersion := InitialAppVersion
+	if lastCommitID.Version > 0 {
+		ctx, err := app.CreateQueryContext(lastCommitID.Version, false)
+		if err != nil {
+			panic(err)
+		}
+		appVersion, err = app.AppVersion(ctx)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	return abci.ResponseInfo{
 		Data:             app.name,
 		Version:          app.version,
-		AppVersion:       app.appVersion,
+		AppVersion:       appVersion,
 		LastBlockHeight:  lastCommitID.Version,
 		LastBlockAppHash: lastCommitID.Hash,
 	}

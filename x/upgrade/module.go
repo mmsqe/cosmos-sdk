@@ -25,7 +25,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/server"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -40,7 +39,7 @@ func init() {
 }
 
 // ConsensusVersion defines the current x/upgrade module consensus version.
-const ConsensusVersion uint64 = 2
+const ConsensusVersion uint64 = 3
 
 var _ module.AppModuleBasic = AppModuleBasic{}
 
@@ -116,6 +115,10 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 	if err != nil {
 		panic(fmt.Sprintf("failed to migrate x/%s from version 1 to 2: %v", types.ModuleName, err))
 	}
+	err = cfg.RegisterMigration(types.ModuleName, 2, m.Migrate2to3)
+	if err != nil {
+		panic(fmt.Sprintf("failed to migrate x/%s from version 2 to 3: %v", types.ModuleName, err))
+	}
 }
 
 // InitGenesis is ignored, no sense in serializing future upgrades
@@ -177,10 +180,11 @@ func init() {
 type ModuleInputs struct {
 	depinject.In
 
-	Config       *modulev1.Module
-	Key          *store.KVStoreKey
-	Cdc          codec.Codec
-	AddressCodec address.Codec
+	Config             *modulev1.Module
+	Key                *store.KVStoreKey
+	Cdc                codec.Codec
+	AddressCodec       address.Codec
+	AppVersionModifier baseapp.AppVersionModifier
 
 	AppOpts servertypes.AppOptions `optional:"true"`
 }
@@ -191,7 +195,6 @@ type ModuleOutputs struct {
 	UpgradeKeeper *keeper.Keeper
 	Module        appmodule.AppModule
 	GovHandler    govv1beta1.HandlerRoute
-	BaseAppOption runtime.BaseAppOption
 }
 
 func ProvideModule(in ModuleInputs) ModuleOutputs {
@@ -215,14 +218,11 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 	}
 
 	// set the governance module account as the authority for conducting upgrades
-	k := keeper.NewKeeper(skipUpgradeHeights, in.Key, in.Cdc, homePath, nil, authority.String())
-	baseappOpt := func(app *baseapp.BaseApp) {
-		k.SetVersionSetter(app)
-	}
+	k := keeper.NewKeeper(skipUpgradeHeights, in.Key, in.Cdc, homePath, in.AppVersionModifier, authority.String())
 	m := NewAppModule(k, in.AddressCodec)
 	gh := govv1beta1.HandlerRoute{RouteKey: types.RouterKey, Handler: NewSoftwareUpgradeProposalHandler(k)}
 
-	return ModuleOutputs{UpgradeKeeper: k, Module: m, GovHandler: gh, BaseAppOption: baseappOpt}
+	return ModuleOutputs{UpgradeKeeper: k, Module: m, GovHandler: gh}
 }
 
 func PopulateVersionMap(upgradeKeeper *keeper.Keeper, modules map[string]appmodule.AppModule) {
