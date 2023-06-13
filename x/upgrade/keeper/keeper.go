@@ -350,13 +350,14 @@ func (k Keeper) HasHandler(name string) bool {
 }
 
 // ApplyUpgrade will execute the handler associated with the Plan and mark the plan as done.
-func (k Keeper) ApplyUpgrade(ctx sdk.Context, plan types.Plan) {
+func (k Keeper) ApplyUpgrade(cctx *sdk.Context, plan types.Plan) {
 	handler := k.upgradeHandlers[plan.Name]
 	if handler == nil {
 		panic("ApplyUpgrade should never be called without first checking HasHandler")
 	}
 
-	updatedVM, err := handler(ctx, plan, k.GetModuleVersionMap(ctx))
+	ctx := *cctx
+	updatedVM, err := handler(cctx, plan, k.GetModuleVersionMap(ctx))
 	if err != nil {
 		panic(err)
 	}

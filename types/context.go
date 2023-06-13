@@ -243,6 +243,11 @@ func (c Context) WithConsensusParams(params *tmproto.ConsensusParams) Context {
 	return c
 }
 
+// SetConsensusParams returns a Context with an updated consensus params
+func (c *Context) SetConsensusParams(params *tmproto.ConsensusParams) {
+	c.consParams = params
+}
+
 // WithEventManager returns a Context with an updated event manager
 func (c Context) WithEventManager(em *EventManager) Context {
 	c.eventManager = em

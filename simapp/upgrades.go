@@ -61,14 +61,14 @@ func (app SimApp) RegisterUpgradeHandlers() {
 
 	app.UpgradeKeeper.SetUpgradeHandler(
 		UpgradeName,
-		func(ctx sdk.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		func(ctx *sdk.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 			// Migrate Tendermint consensus parameters from x/params module to a dedicated x/consensus module.
-			baseapp.MigrateParams(ctx, baseAppLegacySS, &app.ConsensusParamsKeeper)
-
+			baseapp.MigrateParams(*ctx, baseAppLegacySS, &app.ConsensusParamsKeeper)
+			ctx.SetConsensusParams(app.GetConsensusParams(*ctx))
 			// Note: this migration is optional,
 			// You can include x/gov proposal migration documented in [UPGRADING.md](https://github.com/cosmos/cosmos-sdk/blob/main/UPGRADING.md)
 
-			return app.ModuleManager.RunMigrations(ctx, app.Configurator(), fromVM)
+			return app.ModuleManager.RunMigrations(*ctx, app.Configurator(), fromVM)
 		},
 	)
 

@@ -196,7 +196,7 @@ type HasConsensusVersion interface {
 // BeginBlockAppModule is an extension interface that contains information about the AppModule and BeginBlock.
 type BeginBlockAppModule interface {
 	AppModule
-	BeginBlock(sdk.Context, abci.RequestBeginBlock)
+	BeginBlock(*sdk.Context, abci.RequestBeginBlock)
 }
 
 // EndBlockAppModule is an extension interface that contains information about the AppModule and EndBlock.
@@ -236,7 +236,7 @@ func (gam GenesisOnlyAppModule) RegisterServices(Configurator) {}
 func (gam GenesisOnlyAppModule) ConsensusVersion() uint64 { return 1 }
 
 // BeginBlock returns an empty module begin-block
-func (gam GenesisOnlyAppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {}
+func (gam GenesisOnlyAppModule) BeginBlock(ctx *sdk.Context, req abci.RequestBeginBlock) {}
 
 // EndBlock returns an empty module end-block
 func (GenesisOnlyAppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
@@ -559,7 +559,7 @@ func (m *Manager) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) abci.R
 	for _, moduleName := range m.OrderBeginBlockers {
 		module, ok := m.Modules[moduleName].(BeginBlockAppModule)
 		if ok {
-			module.BeginBlock(ctx, req)
+			module.BeginBlock(&ctx, req)
 		}
 	}
 

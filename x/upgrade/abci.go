@@ -20,7 +20,8 @@ import (
 // The purpose is to ensure the binary is switched EXACTLY at the desired block, and to allow
 // a migration to be executed if needed upon this switch (migration defined in the new binary)
 // skipUpgradeHeightArray is a set of block heights for which the upgrade must be skipped
-func BeginBlocker(k *keeper.Keeper, ctx sdk.Context, _ abci.RequestBeginBlock) {
+func BeginBlocker(k *keeper.Keeper, cctx *sdk.Context, _ abci.RequestBeginBlock) {
+	ctx := *cctx
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyBeginBlocker)
 
 	plan, found := k.GetUpgradePlan(ctx)
@@ -80,8 +81,8 @@ func BeginBlocker(k *keeper.Keeper, ctx sdk.Context, _ abci.RequestBeginBlock) {
 
 		// We have an upgrade handler for this upgrade name, so apply the upgrade
 		ctx.Logger().Info(fmt.Sprintf("applying upgrade \"%s\" at %s", plan.Name, plan.DueAt()))
-		ctx = ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
-		k.ApplyUpgrade(ctx, plan)
+		ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+		k.ApplyUpgrade(cctx, plan)
 		return
 	}
 
