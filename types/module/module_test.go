@@ -3,11 +3,12 @@ package module_test
 import (
 	"encoding/json"
 	"errors"
+	"reflect"
 	"testing"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/libs/log"
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	ctmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	"github.com/golang/mock/gomock"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
@@ -157,7 +158,7 @@ func TestManager_InitGenesis(t *testing.T) {
 	require.NotNil(t, mm)
 	require.Equal(t, 2, len(mm.Modules))
 
-	ctx := sdk.NewContext(nil, tmproto.Header{}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(nil, ctmproto.Header{}, false, log.NewNopLogger())
 	interfaceRegistry := types.NewInterfaceRegistry()
 	cdc := codec.NewProtoCodec(interfaceRegistry)
 	genesisData := map[string]json.RawMessage{"module1": json.RawMessage(`{"key": "value"}`)}
@@ -188,7 +189,7 @@ func TestManager_ExportGenesis(t *testing.T) {
 	require.NotNil(t, mm)
 	require.Equal(t, 2, len(mm.Modules))
 
-	ctx := sdk.NewContext(nil, tmproto.Header{}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(nil, ctmproto.Header{}, false, log.NewNopLogger())
 	interfaceRegistry := types.NewInterfaceRegistry()
 	cdc := codec.NewProtoCodec(interfaceRegistry)
 	mockAppModule1.EXPECT().ExportGenesis(gomock.Eq(ctx), gomock.Eq(cdc)).AnyTimes().Return(json.RawMessage(`{"key1": "value1"}`))
@@ -250,4 +251,68 @@ func TestManager_EndBlock(t *testing.T) {
 	mockAppModule1.EXPECT().EndBlock(gomock.Any(), gomock.Eq(req)).Times(1).Return([]abci.ValidatorUpdate{{}})
 	mockAppModule2.EXPECT().EndBlock(gomock.Any(), gomock.Eq(req)).Times(1).Return([]abci.ValidatorUpdate{{}})
 	require.Panics(t, func() { mm.EndBlock(sdk.Context{}, req) })
+}
+
+type MockConsensusParamGetter struct {
+	ctrl     *gomock.Controller
+	recorder *MockConsensusParamGetterRecorder
+}
+
+type MockConsensusParamGetterRecorder struct {
+	mock *MockConsensusParamGetter
+}
+
+func NewMockConsensusParamGetter(ctrl *gomock.Controller) *MockConsensusParamGetter {
+	mock := &MockConsensusParamGetter{ctrl: ctrl}
+	mock.recorder = &MockConsensusParamGetterRecorder{mock}
+	return mock
+}
+
+func (m *MockConsensusParamGetter) EXPECT() *MockConsensusParamGetterRecorder {
+	return m.recorder
+}
+
+func (m *MockConsensusParamGetter) GetConsensusParams(arg0 sdk.Context) *ctmproto.ConsensusParams {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConsensusParams", arg0)
+	ret0, _ := ret[0].(*ctmproto.ConsensusParams)
+	return ret0
+}
+
+// BeginBlock indicates an expected call of BeginBlock.
+func (mr *MockConsensusParamGetterRecorder) GetConsensusParams(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConsensusParams", reflect.TypeOf((*MockConsensusParamGetter)(nil).GetConsensusParams), arg0)
+}
+
+func TestManager_BeginBlock_WithConsensusParamsGetter(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	t.Cleanup(mockCtrl.Finish)
+
+	mockUpgradeModule := mock.NewMockAppModuleWithAllExtensions(mockCtrl)
+	mockUpgradeModule.EXPECT().Name().Times(2).Return("upgrade")
+	mockParamsGetter := NewMockConsensusParamGetter(mockCtrl)
+
+	// Create a Manager with the mock consensusParamsGetter and an upgrade module
+	m := module.NewManager(mockUpgradeModule).WithConsensusParamsGetter(mockParamsGetter)
+
+	// Create a context with a nil consensus params object and an empty event manager
+	ctx := sdk.Context{}
+
+	mockUpgradeModule.EXPECT().BeginBlock(gomock.Any(), abci.RequestBeginBlock{}).Times(1)
+	mockParamsGetter.EXPECT().GetConsensusParams(gomock.Any()).Times(1).Return(&ctmproto.ConsensusParams{
+		Block: &ctmproto.BlockParams{MaxBytes: 1000},
+	})
+	res := m.BeginBlock(ctx, abci.RequestBeginBlock{})
+	require.NotNil(t, res)
+
+	// Create a context with a consensus params object and an empty event manager
+	ctx = sdk.Context{}.WithConsensusParams(&ctmproto.ConsensusParams{
+		Block: &ctmproto.BlockParams{MaxBytes: 1000},
+	})
+
+	mockUpgradeModule.EXPECT().BeginBlock(gomock.Any(), abci.RequestBeginBlock{}).Times(1)
+	mockParamsGetter.EXPECT().GetConsensusParams(gomock.Any()).Times(0)
+	res = m.BeginBlock(ctx, abci.RequestBeginBlock{})
+	require.NotNil(t, res)
 }
