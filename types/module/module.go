@@ -200,6 +200,10 @@ type BeginBlockAppModule interface {
 	BeginBlock(sdk.Context, abci.RequestBeginBlock)
 }
 
+type MigrationModule interface {
+	RunMigration()
+}
+
 // EndBlockAppModule is an extension interface that contains information about the AppModule and EndBlock.
 type EndBlockAppModule interface {
 	AppModule
@@ -566,18 +570,26 @@ func (m Manager) RunMigrations(ctx sdk.Context, cfg Configurator, fromVM Version
 // modules.
 func (m *Manager) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
-
 	for _, moduleName := range m.OrderBeginBlockers {
-		module, ok := m.Modules[moduleName].(BeginBlockAppModule)
-		if ok {
-			module.BeginBlock(ctx, req)
-			if m.consensusParamsGetter != nil {
-				cp := ctx.ConsensusParams()
-				if cp == nil || cp.Block == nil {
-					if cp = m.consensusParamsGetter.GetConsensusParams(ctx); cp != nil {
-						ctx = ctx.WithConsensusParams(cp)
+		if module, ok := m.Modules[moduleName].(BeginBlockAppModule); ok {
+			if _, ok := module.(MigrationModule); ok {
+				module.BeginBlock(ctx, req)
+				if m.consensusParamsGetter != nil {
+					cp := ctx.ConsensusParams()
+					if cp == nil || cp.Block == nil {
+						if cp = m.consensusParamsGetter.GetConsensusParams(ctx); cp != nil {
+							ctx = ctx.WithConsensusParams(cp)
+						}
 					}
 				}
+				break
+			}
+		}
+	}
+	for _, moduleName := range m.OrderBeginBlockers {
+		if module, ok := m.Modules[moduleName].(BeginBlockAppModule); ok {
+			if _, ok := module.(MigrationModule); !ok {
+				module.BeginBlock(ctx, req)
 			}
 		}
 	}

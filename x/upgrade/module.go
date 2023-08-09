@@ -161,6 +161,10 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	BeginBlocker(am.keeper, ctx, req)
 }
 
+func (am AppModule) RunMigration() {
+
+}
+
 //
 // App Wiring Setup
 //
