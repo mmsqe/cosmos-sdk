@@ -193,6 +193,11 @@ type HasConsensusVersion interface {
 	ConsensusVersion() uint64
 }
 
+type PreBeginBlockAppModule interface {
+	AppModule
+	PreBeginBlock(sdk.Context, abci.RequestBeginBlock) (sdk.ResponsePreBeginBlock, error)
+}
+
 // BeginBlockAppModule is an extension interface that contains information about the AppModule and BeginBlock.
 type BeginBlockAppModule interface {
 	AppModule
@@ -249,6 +254,7 @@ type Manager struct {
 	Modules            map[string]interface{} // interface{} is used now to support the legacy AppModule as well as new core appmodule.AppModule.
 	OrderInitGenesis   []string
 	OrderExportGenesis []string
+	PreBeginBlockers   []string
 	OrderBeginBlockers []string
 	OrderEndBlockers   []string
 	OrderMigrations    []string
@@ -258,15 +264,20 @@ type Manager struct {
 func NewManager(modules ...AppModule) *Manager {
 	moduleMap := make(map[string]interface{})
 	modulesStr := make([]string, 0, len(modules))
+	preBeginModulesStr := make([]string, 0, len(modules))
 	for _, module := range modules {
 		moduleMap[module.Name()] = module
 		modulesStr = append(modulesStr, module.Name())
+		if _, ok := module.(PreBeginBlockAppModule); ok {
+			preBeginModulesStr = append(preBeginModulesStr, module.Name())
+		}
 	}
 
 	return &Manager{
 		Modules:            moduleMap,
 		OrderInitGenesis:   modulesStr,
 		OrderExportGenesis: modulesStr,
+		PreBeginBlockers:   preBeginModulesStr,
 		OrderBeginBlockers: modulesStr,
 		OrderEndBlockers:   modulesStr,
 	}
@@ -550,19 +561,38 @@ func (m Manager) RunMigrations(ctx sdk.Context, cfg Configurator, fromVM Version
 	return updatedVM, nil
 }
 
+// PreBeginBlock performs begin block functionality for upgrade module.
+// It takes the current context as a parameter and returns a boolean value
+// indicating whether the migration was successfully executed or not.
+func (m *Manager) PreBeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) (sdk.ResponsePreBeginBlock, error) {
+	ctx = ctx.WithEventManager(sdk.NewEventManager())
+	paramsChanged := false
+	for _, moduleName := range m.PreBeginBlockers {
+		if module, ok := m.Modules[moduleName].(PreBeginBlockAppModule); ok {
+			rsp, err := module.PreBeginBlock(ctx, req)
+			if err != nil {
+				return sdk.ResponsePreBeginBlock{}, err
+			}
+			if rsp.ConsensusParamsChanged {
+				paramsChanged = true
+			}
+		}
+	}
+	return sdk.ResponsePreBeginBlock{
+		ConsensusParamsChanged: paramsChanged,
+	}, nil
+}
+
 // BeginBlock performs begin block functionality for all modules. It creates a
 // child context with an event manager to aggregate events emitted from all
 // modules.
 func (m *Manager) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
-
 	for _, moduleName := range m.OrderBeginBlockers {
-		module, ok := m.Modules[moduleName].(BeginBlockAppModule)
-		if ok {
+		if module, ok := m.Modules[moduleName].(BeginBlockAppModule); ok {
 			module.BeginBlock(ctx, req)
 		}
 	}
-
 	return abci.ResponseBeginBlock{
 		Events: ctx.EventManager().ABCIEvents(),
 	}

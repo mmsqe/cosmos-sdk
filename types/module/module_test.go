@@ -3,6 +3,7 @@ package module_test
 import (
 	"encoding/json"
 	"errors"
+	"reflect"
 	"testing"
 
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -250,4 +251,36 @@ func TestManager_EndBlock(t *testing.T) {
 	mockAppModule1.EXPECT().EndBlock(gomock.Any(), gomock.Eq(req)).Times(1).Return([]abci.ValidatorUpdate{{}})
 	mockAppModule2.EXPECT().EndBlock(gomock.Any(), gomock.Eq(req)).Times(1).Return([]abci.ValidatorUpdate{{}})
 	require.Panics(t, func() { mm.EndBlock(sdk.Context{}, req) })
+}
+
+type MockConsensusParamGetter struct {
+	ctrl     *gomock.Controller
+	recorder *MockConsensusParamGetterRecorder
+}
+
+type MockConsensusParamGetterRecorder struct {
+	mock *MockConsensusParamGetter
+}
+
+func NewMockConsensusParamGetter(ctrl *gomock.Controller) *MockConsensusParamGetter {
+	mock := &MockConsensusParamGetter{ctrl: ctrl}
+	mock.recorder = &MockConsensusParamGetterRecorder{mock}
+	return mock
+}
+
+func (m *MockConsensusParamGetter) EXPECT() *MockConsensusParamGetterRecorder {
+	return m.recorder
+}
+
+func (m *MockConsensusParamGetter) GetConsensusParams(arg0 sdk.Context) *tmproto.ConsensusParams {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConsensusParams", arg0)
+	ret0, _ := ret[0].(*tmproto.ConsensusParams)
+	return ret0
+}
+
+// BeginBlock indicates an expected call of BeginBlock.
+func (mr *MockConsensusParamGetterRecorder) GetConsensusParams(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConsensusParams", reflect.TypeOf((*MockConsensusParamGetter)(nil).GetConsensusParams), arg0)
 }

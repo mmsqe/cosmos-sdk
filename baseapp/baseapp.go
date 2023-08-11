@@ -64,6 +64,7 @@ type BaseApp struct { //nolint: maligned
 	anteHandler     sdk.AnteHandler            // ante handler for fee and auth
 	postHandler     sdk.PostHandler            // post handler, optional, e.g. for tips
 	initChainer     sdk.InitChainer            // initialize state with validators and state blob
+	preBeginBlocker sdk.PreBeginBlocker        // logic to run before BeginBlocker
 	beginBlocker    sdk.BeginBlocker           // logic to run before any txs
 	processProposal sdk.ProcessProposalHandler // the handler which runs on ABCI ProcessProposal
 	prepareProposal sdk.PrepareProposalHandler // the handler which runs on ABCI PrepareProposal

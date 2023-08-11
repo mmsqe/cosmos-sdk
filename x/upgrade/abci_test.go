@@ -31,12 +31,13 @@ import (
 type TestSuite struct {
 	suite.Suite
 
-	module  module.BeginBlockAppModule
-	keeper  *keeper.Keeper
-	handler govtypesv1beta1.Handler
-	ctx     sdk.Context
-	baseApp *baseapp.BaseApp
-	encCfg  moduletestutil.TestEncodingConfig
+	module    module.BeginBlockAppModule
+	preModule module.PreBeginBlockAppModule
+	keeper    *keeper.Keeper
+	handler   govtypesv1beta1.Handler
+	ctx       sdk.Context
+	baseApp   *baseapp.BaseApp
+	encCfg    moduletestutil.TestEncodingConfig
 }
 
 var s TestSuite
@@ -58,7 +59,7 @@ func setupTest(t *testing.T, height int64, skip map[int64]bool) TestSuite {
 
 	s.ctx = testCtx.Ctx.WithBlockHeader(tmproto.Header{Time: time.Now(), Height: height})
 
-	s.module = upgrade.NewAppModule(s.keeper)
+	s.preModule = upgrade.NewAppModule(s.keeper)
 	s.handler = upgrade.NewSoftwareUpgradeProposalHandler(s.keeper)
 	return s
 }
@@ -104,7 +105,7 @@ func VerifyDoUpgrade(t *testing.T) {
 
 	req := abci.RequestBeginBlock{Header: newCtx.BlockHeader()}
 	require.Panics(t, func() {
-		s.module.BeginBlock(newCtx, req)
+		s.preModule.PreBeginBlock(newCtx, req)
 	})
 
 	t.Log("Verify that the upgrade can be successfully applied with a handler")
@@ -112,7 +113,7 @@ func VerifyDoUpgrade(t *testing.T) {
 		return vm, nil
 	})
 	require.NotPanics(t, func() {
-		s.module.BeginBlock(newCtx, req)
+		s.preModule.PreBeginBlock(newCtx, req)
 	})
 
 	VerifyCleared(t, newCtx)
@@ -122,7 +123,7 @@ func VerifyDoUpgradeWithCtx(t *testing.T, newCtx sdk.Context, proposalName strin
 	t.Log("Verify that a panic happens at the upgrade height")
 	req := abci.RequestBeginBlock{Header: newCtx.BlockHeader()}
 	require.Panics(t, func() {
-		s.module.BeginBlock(newCtx, req)
+		s.preModule.PreBeginBlock(newCtx, req)
 	})
 
 	t.Log("Verify that the upgrade can be successfully applied with a handler")
@@ -130,7 +131,7 @@ func VerifyDoUpgradeWithCtx(t *testing.T, newCtx sdk.Context, proposalName strin
 		return vm, nil
 	})
 	require.NotPanics(t, func() {
-		s.module.BeginBlock(newCtx, req)
+		s.preModule.PreBeginBlock(newCtx, req)
 	})
 
 	VerifyCleared(t, newCtx)
@@ -148,7 +149,7 @@ func TestHaltIfTooNew(t *testing.T) {
 	newCtx := s.ctx.WithBlockHeight(s.ctx.BlockHeight() + 1).WithBlockTime(time.Now())
 	req := abci.RequestBeginBlock{Header: newCtx.BlockHeader()}
 	require.NotPanics(t, func() {
-		s.module.BeginBlock(newCtx, req)
+		s.preModule.PreBeginBlock(newCtx, req)
 	})
 	require.Equal(t, 0, called)
 
@@ -156,7 +157,7 @@ func TestHaltIfTooNew(t *testing.T) {
 	err := s.handler(s.ctx, &types.SoftwareUpgradeProposal{Title: "prop", Plan: types.Plan{Name: "future", Height: s.ctx.BlockHeight() + 3}})
 	require.NoError(t, err)
 	require.Panics(t, func() {
-		s.module.BeginBlock(newCtx, req)
+		s.preModule.PreBeginBlock(newCtx, req)
 	})
 	require.Equal(t, 0, called)
 
@@ -165,7 +166,7 @@ func TestHaltIfTooNew(t *testing.T) {
 	futCtx := s.ctx.WithBlockHeight(s.ctx.BlockHeight() + 3).WithBlockTime(time.Now())
 	req = abci.RequestBeginBlock{Header: futCtx.BlockHeader()}
 	require.NotPanics(t, func() {
-		s.module.BeginBlock(futCtx, req)
+		s.preModule.PreBeginBlock(futCtx, req)
 	})
 	require.Equal(t, 1, called)
 
@@ -208,7 +209,7 @@ func TestNoSpuriousUpgrades(t *testing.T) {
 	t.Log("Verify that no upgrade panic is triggered in the BeginBlocker when we haven't scheduled an upgrade")
 	req := abci.RequestBeginBlock{Header: s.ctx.BlockHeader()}
 	require.NotPanics(t, func() {
-		s.module.BeginBlock(s.ctx, req)
+		s.preModule.PreBeginBlock(s.ctx, req)
 	})
 }
 
@@ -274,7 +275,7 @@ func TestSkipUpgradeSkippingAll(t *testing.T) {
 
 	newCtx = newCtx.WithBlockHeight(skipOne)
 	require.NotPanics(t, func() {
-		s.module.BeginBlock(newCtx, req)
+		s.preModule.PreBeginBlock(newCtx, req)
 	})
 
 	t.Log("Verify a second proposal also is being cleared")
@@ -283,7 +284,7 @@ func TestSkipUpgradeSkippingAll(t *testing.T) {
 
 	newCtx = newCtx.WithBlockHeight(skipTwo)
 	require.NotPanics(t, func() {
-		s.module.BeginBlock(newCtx, req)
+		s.preModule.PreBeginBlock(newCtx, req)
 	})
 
 	// To ensure verification is being done only after both upgrades are cleared
@@ -312,7 +313,7 @@ func TestUpgradeSkippingOne(t *testing.T) {
 	// Setting block height of proposal test
 	newCtx = newCtx.WithBlockHeight(skipOne)
 	require.NotPanics(t, func() {
-		s.module.BeginBlock(newCtx, req)
+		s.preModule.PreBeginBlock(newCtx, req)
 	})
 
 	t.Log("Verify the second proposal is not skipped")
@@ -347,7 +348,7 @@ func TestUpgradeSkippingOnlyTwo(t *testing.T) {
 	// Setting block height of proposal test
 	newCtx = newCtx.WithBlockHeight(skipOne)
 	require.NotPanics(t, func() {
-		s.module.BeginBlock(newCtx, req)
+		s.preModule.PreBeginBlock(newCtx, req)
 	})
 
 	// A new proposal with height in skipUpgradeHeights
@@ -356,7 +357,7 @@ func TestUpgradeSkippingOnlyTwo(t *testing.T) {
 	// Setting block height of proposal test2
 	newCtx = newCtx.WithBlockHeight(skipTwo)
 	require.NotPanics(t, func() {
-		s.module.BeginBlock(newCtx, req)
+		s.preModule.PreBeginBlock(newCtx, req)
 	})
 
 	t.Log("Verify a new proposal is not skipped")
@@ -379,7 +380,7 @@ func TestUpgradeWithoutSkip(t *testing.T) {
 	require.NoError(t, err)
 	t.Log("Verify if upgrade happens without skip upgrade")
 	require.Panics(t, func() {
-		s.module.BeginBlock(newCtx, req)
+		s.preModule.PreBeginBlock(newCtx, req)
 	})
 
 	VerifyDoUpgrade(t)
@@ -474,11 +475,11 @@ func TestBinaryVersion(t *testing.T) {
 		ctx, req := tc.preRun()
 		if tc.expectPanic {
 			require.Panics(t, func() {
-				s.module.BeginBlock(ctx, req)
+				s.preModule.PreBeginBlock(ctx, req)
 			})
 		} else {
 			require.NotPanics(t, func() {
-				s.module.BeginBlock(ctx, req)
+				s.preModule.PreBeginBlock(ctx, req)
 			})
 		}
 	}
@@ -512,7 +513,7 @@ func TestDowngradeVerification(t *testing.T) {
 	// successful upgrade.
 	req := abci.RequestBeginBlock{Header: ctx.BlockHeader()}
 	require.NotPanics(t, func() {
-		m.BeginBlock(ctx, req)
+		m.PreBeginBlock(ctx, req)
 	})
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
 
@@ -562,11 +563,11 @@ func TestDowngradeVerification(t *testing.T) {
 		req := abci.RequestBeginBlock{Header: ctx.BlockHeader()}
 		if tc.expectPanic {
 			require.Panics(t, func() {
-				m.BeginBlock(ctx, req)
+				m.PreBeginBlock(ctx, req)
 			}, name)
 		} else {
 			require.NotPanics(t, func() {
-				m.BeginBlock(ctx, req)
+				m.PreBeginBlock(ctx, req)
 			}, name)
 		}
 	}

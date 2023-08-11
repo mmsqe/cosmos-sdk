@@ -7,6 +7,14 @@ import (
 // InitChainer initializes application state at genesis
 type InitChainer func(ctx Context, req abci.RequestInitChain) abci.ResponseInitChain
 
+// PreBeginBlocker runs code before the `BeginBlocker`.
+//
+
+type ResponsePreBeginBlock struct {
+	ConsensusParamsChanged bool
+}
+type PreBeginBlocker func(ctx Context, req abci.RequestBeginBlock) (ResponsePreBeginBlock, error)
+
 // BeginBlocker runs code before the transactions in a block
 //
 // Note: applications which set create_empty_blocks=false will not have regular block timing and should use

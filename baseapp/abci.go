@@ -192,8 +192,22 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 			WithHeaderHash(req.Hash)
 	}
 
+	ctx := app.deliverState.ctx
+	if app.preBeginBlocker != nil {
+		rsp, err := app.preBeginBlocker(ctx, req)
+		if err != nil {
+			panic(fmt.Errorf("preBeginBlock failed, height: %d, err: %w", req.Header.Height, err))
+		}
+		// rsp.ConsensusParamsChanged is true from preBeginBlocker means ConsensusParams in store get changed
+		// write the consensus parameters in store to context
+		if rsp.ConsensusParamsChanged {
+			ctx = ctx.WithConsensusParams(app.GetConsensusParams(ctx))
+			app.deliverState.ctx = ctx
+		}
+	}
+
 	if app.beginBlocker != nil {
-		res = app.beginBlocker(app.deliverState.ctx, req)
+		res = app.beginBlocker(ctx, req)
 		res.Events = sdk.MarkEventsToIndex(res.Events, app.indexEvents)
 	}
 	// set the signed validators for addition to context in deliverTx
