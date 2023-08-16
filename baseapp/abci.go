@@ -192,18 +192,20 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 			WithHeaderHash(req.Hash)
 	}
 
-	if app.beginBlocker != nil {
-		ctx := app.deliverState.ctx
-		if app.migrationModuleManager != nil && app.migrationModuleManager.RunMigrationBeginBlock(ctx, req) {
-			cp := ctx.ConsensusParams()
-			// Manager skips this step if Block is non-nil since upgrade module is expected to set this params
-			// and consensus parameters should not be overwritten.
-			if cp == nil || cp.Block == nil {
-				if cp = app.GetConsensusParams(ctx); cp != nil {
-					ctx = ctx.WithConsensusParams(cp)
-				}
+	ctx := app.deliverState.ctx
+	if app.preBeginBlocker != nil {
+		app.preBeginBlocker(ctx, req)
+
+		// Manager skips this step if Block is non-nil since upgrade module is expected to set this params
+		// and consensus parameters should not be overwritten.
+		if cp := ctx.ConsensusParams(); cp == nil || cp.Block == nil {
+			if cp = app.GetConsensusParams(ctx); cp != nil {
+				ctx = ctx.WithConsensusParams(cp)
 			}
 		}
+	}
+
+	if app.beginBlocker != nil {
 		res = app.beginBlocker(ctx, req)
 		res.Events = sdk.MarkEventsToIndex(res.Events, app.indexEvents)
 	}

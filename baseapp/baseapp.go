@@ -34,12 +34,6 @@ type (
 	StoreLoader func(ms storetypes.CommitMultiStore) error
 )
 
-// MigrationModuleManager is the interface that a migration module manager should implement to handle
-// the execution of migration logic during the beginning of a block.
-type MigrationModuleManager interface {
-	RunMigrationBeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) bool
-}
-
 const (
 	runTxModeCheck       runTxMode = iota // Check a transaction
 	runTxModeReCheck                      // Recheck a (pending) transaction after a commit
@@ -70,6 +64,7 @@ type BaseApp struct { //nolint: maligned
 	anteHandler     sdk.AnteHandler            // ante handler for fee and auth
 	postHandler     sdk.PostHandler            // post handler, optional, e.g. for tips
 	initChainer     sdk.InitChainer            // initialize state with validators and state blob
+	preBeginBlocker sdk.PreBeginBlocker        // logic to run before BeginBlocker
 	beginBlocker    sdk.BeginBlocker           // logic to run before any txs
 	processProposal sdk.ProcessProposalHandler // the handler which runs on ABCI ProcessProposal
 	prepareProposal sdk.PrepareProposalHandler // the handler which runs on ABCI PrepareProposal
@@ -80,9 +75,6 @@ type BaseApp struct { //nolint: maligned
 
 	// manages snapshots, i.e. dumps of app state at certain intervals
 	snapshotManager *snapshots.Manager
-
-	// manages migrate module
-	migrationModuleManager MigrationModuleManager
 
 	// volatile states:
 	//
@@ -242,11 +234,6 @@ func (app *BaseApp) SetCircuitBreaker(cb CircuitBreaker) {
 		panic("must be called after message server is set")
 	}
 	app.msgServiceRouter.SetCircuit(cb)
-}
-
-// SetMigrationModuleManager sets the MigrationModuleManager of a BaseApp.
-func (app *BaseApp) SetMigrationModuleManager(migrationModuleManager MigrationModuleManager) {
-	app.migrationModuleManager = migrationModuleManager
 }
 
 // MountStores mounts all IAVL or DB stores to the provided keys in the BaseApp

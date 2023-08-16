@@ -200,6 +200,11 @@ type HasConsensusVersion interface {
 	ConsensusVersion() uint64
 }
 
+type PreBeginBlockAppModule interface {
+	AppModule
+	PreBeginBlock(sdk.Context, abci.RequestBeginBlock)
+}
+
 // BeginBlockAppModule is an extension interface that contains information about the AppModule and BeginBlock.
 type BeginBlockAppModule interface {
 	AppModule
@@ -557,19 +562,19 @@ func (m Manager) RunMigrations(ctx sdk.Context, cfg Configurator, fromVM Version
 	return updatedVM, nil
 }
 
-// RunMigrationBeginBlock performs begin block functionality for upgrade module.
+// PreBeginBlocker performs begin block functionality for upgrade module.
 // It takes the current context as a parameter and returns a boolean value
 // indicating whether the migration was successfully executed or not.
-func (m *Manager) RunMigrationBeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) bool {
+func (m *Manager) PreBeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
+	ctx = ctx.WithEventManager(sdk.NewEventManager())
 	for _, moduleName := range m.OrderBeginBlockers {
-		if mod, ok := m.Modules[moduleName].(BeginBlockAppModule); ok {
-			if _, ok := mod.(UpgradeModule); ok {
-				mod.BeginBlock(ctx, req)
-				return true
-			}
+		if module, ok := m.Modules[moduleName].(PreBeginBlockAppModule); ok {
+			module.PreBeginBlock(ctx, req)
 		}
 	}
-	return false
+	return abci.ResponseBeginBlock{
+		Events: ctx.EventManager().ABCIEvents(),
+	}
 }
 
 // BeginBlock performs begin block functionality for all modules. It creates a

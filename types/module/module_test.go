@@ -224,14 +224,14 @@ func TestManager_RunMigrationBeginBlock(t *testing.T) {
 	mockReq := gomock.Eq(req)
 	mockAppModule1.EXPECT().BeginBlock(gomock.Any(), mockReq).Times(0)
 	mockAppModule2.EXPECT().BeginBlock(gomock.Any(), mockReq).Times(1)
-	success := mm.RunMigrationBeginBlock(sdk.Context{}, req)
+	success := mm.BeginBlock(sdk.Context{}, req)
 	require.Equal(t, true, success)
 
 	// test false
 	mockAppModule3 := mock.NewMockBeginBlockAppModule(mockCtrl)
 	mockAppModule3.EXPECT().Name().Times(2).Return("module3")
 	mm = module.NewManager(mockAppModule3)
-	success = mm.RunMigrationBeginBlock(sdk.Context{}, req)
+	success = mm.BeginBlock(sdk.Context{}, req)
 	require.Equal(t, false, success)
 }
 

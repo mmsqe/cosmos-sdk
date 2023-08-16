@@ -18,10 +18,10 @@ This section is currently incomplete. Track the progress of this document [here]
 Users using `depinject` / app v2 do not need any changes, this is abstracted for them.
 :::
 
-After app initiation, call `SetMigrationModuleManager` with ModuleManager to give BaseApp access to `RunMigrationBeginBlock`:
+After app initiation, call `SetPreBeginBlocker` with ModuleManager to give BaseApp access to `RunMigrationBeginBlock`:
 
 ```go
-app.BaseApp.SetMigrationModuleManager(app.ModuleManager)
+app.BaseApp.SetPreBeginBlocker(app.ModuleManager)
 ```
 
 ## Pre-Upgrade Handling

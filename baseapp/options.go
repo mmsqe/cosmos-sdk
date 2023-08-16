@@ -150,6 +150,14 @@ func (app *BaseApp) SetInitChainer(initChainer sdk.InitChainer) {
 	app.initChainer = initChainer
 }
 
+func (app *BaseApp) SetPreBeginBlocker(preBeginBlocker sdk.PreBeginBlocker) {
+	if app.sealed {
+		panic("preBeginBlocker() on sealed BaseApp")
+	}
+
+	app.preBeginBlocker = preBeginBlocker
+}
+
 func (app *BaseApp) SetBeginBlocker(beginBlocker sdk.BeginBlocker) {
 	if app.sealed {
 		panic("SetBeginBlocker() on sealed BaseApp")
