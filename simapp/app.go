@@ -418,7 +418,6 @@ func NewSimApp(
 		nftmodule.NewAppModule(appCodec, app.NFTKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
 		consensus.NewAppModule(appCodec, app.ConsensusParamsKeeper),
 	)
-	bApp.SetPreBeginBlocker(app.ModuleManager)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
 	// there is nothing left over in the validator fee pool, so as to keep the
@@ -497,6 +496,7 @@ func NewSimApp(
 
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
+	app.SetPreBeginBlocker(app.PreBeginBlocker)
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetEndBlocker(app.EndBlocker)
 	app.setAnteHandler(encodingConfig.TxConfig)
@@ -561,6 +561,11 @@ func (app *SimApp) setPostHandler() {
 
 // Name returns the name of the App
 func (app *SimApp) Name() string { return app.BaseApp.Name() }
+
+// PreBeginBlocker application updates every begin block
+func (app *SimApp) PreBeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) (sdk.ResponsePreBeginBlock, error) {
+	return app.ModuleManager.PreBeginBlock(ctx, req)
+}
 
 // BeginBlocker application updates every begin block
 func (app *SimApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {

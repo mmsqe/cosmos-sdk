@@ -561,10 +561,10 @@ func (m Manager) RunMigrations(ctx sdk.Context, cfg Configurator, fromVM Version
 	return updatedVM, nil
 }
 
-// PreBeginBlocker performs begin block functionality for upgrade module.
+// PreBeginBlock performs begin block functionality for upgrade module.
 // It takes the current context as a parameter and returns a boolean value
 // indicating whether the migration was successfully executed or not.
-func (m *Manager) PreBeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) (sdk.ResponsePreBeginBlock, error) {
+func (m *Manager) PreBeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) (sdk.ResponsePreBeginBlock, error) {
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
 	paramsChanged := false
 	for _, moduleName := range m.PreBeginBlockers {
