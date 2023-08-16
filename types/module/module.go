@@ -254,6 +254,7 @@ type Manager struct {
 	Modules            map[string]interface{} // interface{} is used now to support the legacy AppModule as well as new core appmodule.AppModule.
 	OrderInitGenesis   []string
 	OrderExportGenesis []string
+	PreBeginBlockers   []string
 	OrderBeginBlockers []string
 	OrderEndBlockers   []string
 	OrderMigrations    []string
@@ -263,15 +264,20 @@ type Manager struct {
 func NewManager(modules ...AppModule) *Manager {
 	moduleMap := make(map[string]interface{})
 	modulesStr := make([]string, 0, len(modules))
+	preBeginModulesStr := make([]string, 0, len(modules))
 	for _, module := range modules {
 		moduleMap[module.Name()] = module
 		modulesStr = append(modulesStr, module.Name())
+		if _, ok := module.(PreBeginBlockAppModule); ok {
+			preBeginModulesStr = append(preBeginModulesStr, module.Name())
+		}
 	}
 
 	return &Manager{
 		Modules:            moduleMap,
 		OrderInitGenesis:   modulesStr,
 		OrderExportGenesis: modulesStr,
+		PreBeginBlockers:   preBeginModulesStr,
 		OrderBeginBlockers: modulesStr,
 		OrderEndBlockers:   modulesStr,
 	}
@@ -561,7 +567,7 @@ func (m Manager) RunMigrations(ctx sdk.Context, cfg Configurator, fromVM Version
 func (m *Manager) PreBeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) (sdk.ResponsePreBeginBlock, error) {
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
 	paramsChanged := false
-	for _, moduleName := range m.OrderBeginBlockers {
+	for _, moduleName := range m.PreBeginBlockers {
 		if module, ok := m.Modules[moduleName].(PreBeginBlockAppModule); ok {
 			rsp, err := module.PreBeginBlock(ctx, req)
 			if err != nil {
@@ -584,9 +590,9 @@ func (m *Manager) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) abci.R
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
 	for _, moduleName := range m.OrderBeginBlockers {
 		if module, ok := m.Modules[moduleName].(BeginBlockAppModule); ok {
-				module.BeginBlock(ctx, req)
-			}
+			module.BeginBlock(ctx, req)
 		}
+	}
 	return abci.ResponseBeginBlock{
 		Events: ctx.EventManager().ABCIEvents(),
 	}
