@@ -11,7 +11,11 @@ type InitChainer func(ctx Context, req abci.RequestInitChain) abci.ResponseInitC
 //
 // Note: applications which set create_empty_blocks=false will not have regular block timing and should use
 // e.g. BFT timestamps rather than block height for any periodic BeginBlock logic
-type PreBeginBlocker func(ctx Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock
+
+type ResponsePreBeginBlock struct {
+	ConsensusParamsChanged bool
+}
+type PreBeginBlocker func(ctx Context, req abci.RequestBeginBlock) (ResponsePreBeginBlock, error)
 
 // BeginBlocker runs code before the transactions in a block
 //

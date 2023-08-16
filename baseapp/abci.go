@@ -194,17 +194,16 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	ctx := app.deliverState.ctx
 	if app.preBeginBlocker != nil {
-		// noConsensusParams is true before migrate
-		noConsensusParams := app.GetConsensusParams(ctx) == nil
-		app.preBeginBlocker(ctx, req)
+		rsp, err := app.preBeginBlocker(ctx, req)
+		if err != nil {
+			panic(fmt.Errorf("Run preBeginBlock failed, height: %d, err: %w", req.Header.Height, err))
+		}
 		// Manager skips this step if Block is non-nil since upgrade module is expected to set this params
 		// and consensus parameters should not be overwritten.
-		if noConsensusParams {
-			if cp := ctx.ConsensusParams(); cp == nil || cp.Block == nil {
-				if cp = app.GetConsensusParams(ctx); cp != nil {
-					ctx = ctx.WithConsensusParams(cp)
-					app.deliverState.ctx = ctx
-				}
+		if rsp.ConsensusParamsChanged {
+			if cp := app.GetConsensusParams(ctx); cp != nil {
+				ctx = ctx.WithConsensusParams(cp)
+				app.deliverState.ctx = ctx
 			}
 		}
 	}

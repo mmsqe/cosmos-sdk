@@ -20,7 +20,10 @@ import (
 // The purpose is to ensure the binary is switched EXACTLY at the desired block, and to allow
 // a migration to be executed if needed upon this switch (migration defined in the new binary)
 // skipUpgradeHeightArray is a set of block heights for which the upgrade must be skipped
-func PreBeginBlocker(k *keeper.Keeper, ctx sdk.Context, _ abci.RequestBeginBlock) {
+func PreBeginBlocker(k *keeper.Keeper, ctx sdk.Context, _ abci.RequestBeginBlock) (sdk.ResponsePreBeginBlock, error) {
+	rsp := sdk.ResponsePreBeginBlock{
+		ConsensusParamsChanged: false,
+	}
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyBeginBlocker)
 
 	plan, found := k.GetUpgradePlan(ctx)
@@ -48,7 +51,7 @@ func PreBeginBlocker(k *keeper.Keeper, ctx sdk.Context, _ abci.RequestBeginBlock
 	}
 
 	if !found {
-		return
+		return rsp, nil
 	}
 	logger := ctx.Logger()
 
@@ -61,7 +64,7 @@ func PreBeginBlocker(k *keeper.Keeper, ctx sdk.Context, _ abci.RequestBeginBlock
 
 			// Clear the upgrade plan at current height
 			k.ClearUpgradePlan(ctx)
-			return
+			return rsp, nil
 		}
 
 		// Prepare shutdown if we don't have an upgrade handler for this upgrade name (meaning this software is out of date)
@@ -82,7 +85,9 @@ func PreBeginBlocker(k *keeper.Keeper, ctx sdk.Context, _ abci.RequestBeginBlock
 		ctx.Logger().Info(fmt.Sprintf("applying upgrade \"%s\" at %s", plan.Name, plan.DueAt()))
 		ctx = ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
 		k.ApplyUpgrade(ctx, plan)
-		return
+		return sdk.ResponsePreBeginBlock{
+			ConsensusParamsChanged: true,
+		}, nil
 	}
 
 	// if we have a pending upgrade, but it is not yet time, make sure we did not
@@ -92,6 +97,7 @@ func PreBeginBlocker(k *keeper.Keeper, ctx sdk.Context, _ abci.RequestBeginBlock
 		ctx.Logger().Error(downgradeMsg)
 		panic(downgradeMsg)
 	}
+	return rsp, nil
 }
 
 // BuildUpgradeNeededMsg prints the message that notifies that an upgrade is needed.
