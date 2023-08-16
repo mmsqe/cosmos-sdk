@@ -203,6 +203,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 			if cp := ctx.ConsensusParams(); cp == nil || cp.Block == nil {
 				if cp = app.GetConsensusParams(ctx); cp != nil {
 					ctx = ctx.WithConsensusParams(cp)
+					app.deliverState.ctx = ctx
 				}
 			}
 		}
