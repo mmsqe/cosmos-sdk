@@ -54,13 +54,6 @@ func (AppModuleBasic) Name() string {
 	return types.ModuleName
 }
 
-// UpgradeModule is the extension interface that upgrade module should implement to differentiate
-// it from other modules, migration handler need ensure the upgrade module's migration is executed
-// before the rest of the modules.
-type UpgradeModule interface {
-	IsUpgradeModule()
-}
-
 // RegisterLegacyAminoCodec registers the upgrade types on the LegacyAmino codec
 func (AppModuleBasic) RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	types.RegisterLegacyAminoCodec(cdc)
@@ -173,9 +166,6 @@ func (am AppModule) PreBeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) (
 // CONTRACT: this is registered in BeginBlocker *before* all other modules' BeginBlock functions
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 }
-
-// IsUpgradeModule implements the module.UpgradeModule interface.
-func (am AppModuleBasic) IsUpgradeModule() {}
 
 //
 // App Wiring Setup

@@ -65,13 +65,6 @@ type HasName interface {
 	Name() string
 }
 
-// UpgradeModule is the extension interface that upgrade module should implement to differentiate
-// it from other modules, migration handler need ensure the upgrade module's migration is executed
-// before the rest of the modules.
-type UpgradeModule interface {
-	IsUpgradeModule()
-}
-
 // HasGenesisBasics is the legacy interface for stateless genesis methods.
 type HasGenesisBasics interface {
 	DefaultGenesis(codec.JSONCodec) json.RawMessage
@@ -591,11 +584,9 @@ func (m *Manager) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) abci.R
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
 	for _, moduleName := range m.OrderBeginBlockers {
 		if module, ok := m.Modules[moduleName].(BeginBlockAppModule); ok {
-			if _, ok := module.(UpgradeModule); !ok {
 				module.BeginBlock(ctx, req)
 			}
 		}
-	}
 	return abci.ResponseBeginBlock{
 		Events: ctx.EventManager().ABCIEvents(),
 	}

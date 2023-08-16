@@ -209,32 +209,6 @@ func TestManager_ExportGenesis(t *testing.T) {
 	})
 }
 
-func TestManager_RunMigrationBeginBlock(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	t.Cleanup(mockCtrl.Finish)
-
-	mockAppModule1 := mock.NewMockBeginBlockAppModule(mockCtrl)
-	mockAppModule2 := mock.NewMockUpgradeModule(mockCtrl)
-	mockAppModule1.EXPECT().Name().Times(2).Return("module1")
-	mockAppModule2.EXPECT().Name().Times(2).Return("module2")
-	mm := module.NewManager(mockAppModule1, mockAppModule2)
-	require.NotNil(t, mm)
-	require.Equal(t, 2, len(mm.Modules))
-	req := abci.RequestBeginBlock{Hash: []byte("test")}
-	mockReq := gomock.Eq(req)
-	mockAppModule1.EXPECT().BeginBlock(gomock.Any(), mockReq).Times(0)
-	mockAppModule2.EXPECT().BeginBlock(gomock.Any(), mockReq).Times(1)
-	success := mm.BeginBlock(sdk.Context{}, req)
-	require.Equal(t, true, success)
-
-	// test false
-	mockAppModule3 := mock.NewMockBeginBlockAppModule(mockCtrl)
-	mockAppModule3.EXPECT().Name().Times(2).Return("module3")
-	mm = module.NewManager(mockAppModule3)
-	success = mm.BeginBlock(sdk.Context{}, req)
-	require.Equal(t, false, success)
-}
-
 func TestManager_BeginBlock(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	t.Cleanup(mockCtrl.Finish)
