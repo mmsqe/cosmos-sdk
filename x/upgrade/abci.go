@@ -86,6 +86,8 @@ func PreBeginBlocker(k *keeper.Keeper, ctx sdk.Context, _ abci.RequestBeginBlock
 		ctx = ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
 		k.ApplyUpgrade(ctx, plan)
 		return sdk.ResponsePreBeginBlock{
+			// the consensus parameters might be modified in the migration,
+			// refresh the consensus parameters in context.
 			ConsensusParamsChanged: true,
 		}, nil
 	}
