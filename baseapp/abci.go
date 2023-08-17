@@ -198,7 +198,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		if err != nil {
 			panic(fmt.Errorf("preBeginBlock failed, height: %d, err: %w", req.Header.Height, err))
 		}
-		// rsp.ConsensusParamsChanged is true from preBeginBlocker means ConsensusParams in database get changed
+		// rsp.ConsensusParamsChanged is true from preBeginBlocker means ConsensusParams in store get changed
 		// write non-nil app ConsensusParams to context
 		if rsp.ConsensusParamsChanged {
 			if cp := app.GetConsensusParams(ctx); cp != nil {
