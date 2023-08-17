@@ -201,10 +201,8 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		// rsp.ConsensusParamsChanged is true from preBeginBlocker means ConsensusParams in store get changed
 		// write non-nil app ConsensusParams to context
 		if rsp.ConsensusParamsChanged {
-			if cp := app.GetConsensusParams(ctx); cp != nil {
-				ctx = ctx.WithConsensusParams(cp)
-				app.deliverState.ctx = ctx
-			}
+			ctx = ctx.WithConsensusParams(app.GetConsensusParams(ctx))
+			app.deliverState.ctx = ctx
 		}
 	}
 
