@@ -198,8 +198,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		if err != nil {
 			panic(fmt.Errorf("preBeginBlock failed, height: %d, err: %w", req.Header.Height, err))
 		}
-		// Manager skips this step if Block is non-nil since upgrade module is expected to set this params
-		// and consensus parameters should not be overwritten.
+		// rsp.ConsensusParamsChanged represents app.GetConsensusParams is non-nil
 		if rsp.ConsensusParamsChanged {
 			if cp := app.GetConsensusParams(ctx); cp != nil {
 				ctx = ctx.WithConsensusParams(cp)

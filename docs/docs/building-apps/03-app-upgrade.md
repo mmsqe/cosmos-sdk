@@ -12,16 +12,16 @@ This document describes how to upgrade your application. If you are looking spec
 This section is currently incomplete. Track the progress of this document [here](https://github.com/cosmos/cosmos-sdk/issues/11504).
 :::
 
-## Set Migration Module Manager
+## Set PreBeginBlocker
 
 :::tip
 Users using `depinject` / app v2 do not need any changes, this is abstracted for them.
 :::
 
-After app initiation, call `SetPreBeginBlocker` with ModuleManager to give BaseApp access to `RunMigrationBeginBlock`:
+Call `SetPreBeginBlocker` to run `PreBeginBlock`:
 
 ```go
-app.BaseApp.SetPreBeginBlocker(app.ModuleManager)
+app.SetPreBeginBlocker(app.PreBeginBlocker)
 ```
 
 ## Pre-Upgrade Handling
