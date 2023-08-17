@@ -6,14 +6,20 @@ This guide provides instructions for upgrading to specific versions of Cosmos SD
 
 ### BaseApp
 
-#### Upgrade
+#### Set PreBeginBlocker
 
 **Users using `depinject` / app v2 do not need any changes, this is abstracted for them.**
+
 ```diff
 + app.SetPreBeginBlocker(app.PreBeginBlocker)
 ```
-BaseApp added `SetPreBeginBlocker` for apps. This is essential for BaseApp to run `PreBeginBlock` which runs before begin blocker other modules, and allows to modify consensus parameters, and the changes are visible to the following state machine logics.
+```diff
++func (app *SimApp) PreBeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) (sdk.ResponsePreBeginBlock, error) {
++	return app.ModuleManager.PreBeginBlock(ctx, req)
++}
+```
 
+BaseApp added `SetPreBeginBlocker` for apps. This is essential for BaseApp to run `PreBeginBlock` which runs before begin blocker other modules, and allows to modify consensus parameters, and the changes are visible to the following state machine logics.
 
 ### Migration to CometBFT (Part 1)
 

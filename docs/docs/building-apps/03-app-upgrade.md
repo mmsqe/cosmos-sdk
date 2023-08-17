@@ -24,6 +24,12 @@ Call `SetPreBeginBlocker` to run `PreBeginBlock`:
 app.SetPreBeginBlocker(app.PreBeginBlocker)
 ```
 
+```go
+func (app *SimApp) PreBeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) (sdk.ResponsePreBeginBlock, error) {
+	return app.ModuleManager.PreBeginBlock(ctx, req)
+}
+```
+
 ## Pre-Upgrade Handling
 
 Cosmovisor supports custom pre-upgrade handling. Use pre-upgrade handling when you need to implement application config changes that are required in the newer version before you perform the upgrade.
