@@ -196,7 +196,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	if app.preBeginBlocker != nil {
 		rsp, err := app.preBeginBlocker(ctx, req)
 		if err != nil {
-			panic(fmt.Errorf("Run preBeginBlock failed, height: %d, err: %w", req.Header.Height, err))
+			panic(fmt.Errorf("preBeginBlock failed, height: %d, err: %w", req.Header.Height, err))
 		}
 		// Manager skips this step if Block is non-nil since upgrade module is expected to set this params
 		// and consensus parameters should not be overwritten.
