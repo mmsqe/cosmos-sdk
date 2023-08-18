@@ -167,6 +167,9 @@ func (am AppModule) PreBeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) (
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 }
 
+// IsUpgradeModule implements the module.UpgradeModule interface.
+func (am AppModuleBasic) IsUpgradeModule() {}
+
 //
 // App Wiring Setup
 //
