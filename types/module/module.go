@@ -65,13 +65,6 @@ type HasName interface {
 	Name() string
 }
 
-// UpgradeModule is the extension interface that upgrade module should implement to differentiate
-// it from other modules, migration handler need ensure the upgrade module's migration is executed
-// before the rest of the modules.
-type UpgradeModule interface {
-	IsUpgradeModule()
-}
-
 // HasGenesisBasics is the legacy interface for stateless genesis methods.
 type HasGenesisBasics interface {
 	DefaultGenesis(codec.JSONCodec) json.RawMessage
@@ -571,31 +564,18 @@ func (m Manager) RunMigrations(ctx sdk.Context, cfg Configurator, fromVM Version
 // PreBeginBlock performs begin block functionality for upgrade module.
 // It takes the current context as a parameter and returns a boolean value
 // indicating whether the migration was successfully executed or not.
-
 func (m *Manager) PreBeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) (sdk.ResponsePreBeginBlock, error) {
-	var upgradePreBeginBlockers, preBeginBlockers []PreBeginBlockAppModule
-	for _, moduleName := range m.PreBeginBlockers {
-		if module, ok := m.Modules[moduleName].(PreBeginBlockAppModule); ok {
-			if _, ok := module.(UpgradeModule); ok {
-				upgradePreBeginBlockers = append(upgradePreBeginBlockers, module)
-			} else {
-				preBeginBlockers = append(preBeginBlockers, module)
-			}
-		}
-	}
-
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
 	paramsChanged := false
-	for _, module := range append(
-		upgradePreBeginBlockers,
-		preBeginBlockers...,
-	) {
-		rsp, err := module.PreBeginBlock(ctx, req)
-		if err != nil {
-			return sdk.ResponsePreBeginBlock{}, err
-		}
-		if rsp.ConsensusParamsChanged {
-			paramsChanged = true
+	for _, moduleName := range m.PreBeginBlockers {
+		if module, ok := m.Modules[moduleName].(PreBeginBlockAppModule); ok {
+			rsp, err := module.PreBeginBlock(ctx, req)
+			if err != nil {
+				return sdk.ResponsePreBeginBlock{}, err
+			}
+			if rsp.ConsensusParamsChanged {
+				paramsChanged = true
+			}
 		}
 	}
 	return sdk.ResponsePreBeginBlock{
