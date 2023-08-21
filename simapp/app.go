@@ -496,7 +496,7 @@ func NewSimApp(
 
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
-	app.SetPreBeginBlocker(app.PreBeginBlocker)
+	app.SetPreBlocker(app.PreBlocker)
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetEndBlocker(app.EndBlocker)
 	app.setAnteHandler(encodingConfig.TxConfig)
@@ -562,9 +562,9 @@ func (app *SimApp) setPostHandler() {
 // Name returns the name of the App
 func (app *SimApp) Name() string { return app.BaseApp.Name() }
 
-// PreBeginBlocker application updates every begin block
-func (app *SimApp) PreBeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) (sdk.ResponsePreBeginBlock, error) {
-	return app.ModuleManager.PreBeginBlock(ctx, req)
+// PreBlocker application updates every begin block
+func (app *SimApp) PreBlocker(ctx sdk.Context, req abci.RequestBeginBlock) (sdk.ResponsePreBlock, error) {
+	return app.ModuleManager.PreBlock(ctx, req)
 }
 
 // BeginBlocker application updates every begin block

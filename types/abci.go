@@ -7,13 +7,13 @@ import (
 // InitChainer initializes application state at genesis
 type InitChainer func(ctx Context, req abci.RequestInitChain) abci.ResponseInitChain
 
-// PreBeginBlocker runs code before the `BeginBlocker`.
+// PreBlocker runs code before the `BeginBlocker`.
 //
 
-type ResponsePreBeginBlock struct {
+type ResponsePreBlock struct {
 	ConsensusParamsChanged bool
 }
-type PreBeginBlocker func(ctx Context, req abci.RequestBeginBlock) (ResponsePreBeginBlock, error)
+type PreBlocker func(ctx Context, req abci.RequestBeginBlock) (ResponsePreBlock, error)
 
 // BeginBlocker runs code before the transactions in a block
 //

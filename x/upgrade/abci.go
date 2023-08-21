@@ -12,7 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/upgrade/types"
 )
 
-// PreBeginBlock will check if there is a scheduled plan and if it is ready to be executed.
+// PreBlock will check if there is a scheduled plan and if it is ready to be executed.
 // If the current height is in the provided set of heights to skip, it will skip and clear the upgrade plan.
 // If it is ready, it will execute it if the handler is installed, and panic/abort otherwise.
 // If the plan is not ready, it will ensure the handler is not registered too early (and abort otherwise).
@@ -20,8 +20,8 @@ import (
 // The purpose is to ensure the binary is switched EXACTLY at the desired block, and to allow
 // a migration to be executed if needed upon this switch (migration defined in the new binary)
 // skipUpgradeHeightArray is a set of block heights for which the upgrade must be skipped
-func PreBeginBlocker(k *keeper.Keeper, ctx sdk.Context, _ abci.RequestBeginBlock) (sdk.ResponsePreBeginBlock, error) {
-	rsp := sdk.ResponsePreBeginBlock{
+func PreBlocker(k *keeper.Keeper, ctx sdk.Context, _ abci.RequestBeginBlock) (sdk.ResponsePreBlock, error) {
+	rsp := sdk.ResponsePreBlock{
 		ConsensusParamsChanged: false,
 	}
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyBeginBlocker)
@@ -85,7 +85,7 @@ func PreBeginBlocker(k *keeper.Keeper, ctx sdk.Context, _ abci.RequestBeginBlock
 		ctx.Logger().Info(fmt.Sprintf("applying upgrade \"%s\" at %s", plan.Name, plan.DueAt()))
 		ctx = ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
 		k.ApplyUpgrade(ctx, plan)
-		return sdk.ResponsePreBeginBlock{
+		return sdk.ResponsePreBlock{
 			// the consensus parameters might be modified in the migration,
 			// refresh the consensus parameters in context.
 			ConsensusParamsChanged: true,

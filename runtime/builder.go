@@ -41,7 +41,7 @@ func (a *AppBuilder) Build(
 	bApp.SetVersion(version.Version)
 	bApp.SetInterfaceRegistry(a.app.interfaceRegistry)
 	bApp.MountStores(a.app.storeKeys...)
-	bApp.SetPreBeginBlocker(a.app.ModuleManager.PreBeginBlock)
+	bApp.SetPreBlocker(a.app.ModuleManager.PreBlock)
 
 	a.app.BaseApp = bApp
 	a.app.configurator = module.NewConfigurator(a.app.cdc, a.app.MsgServiceRouter(), a.app.GRPCQueryRouter())
