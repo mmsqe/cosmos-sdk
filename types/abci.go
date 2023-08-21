@@ -8,8 +8,6 @@ import (
 type InitChainer func(ctx Context, req abci.RequestInitChain) abci.ResponseInitChain
 
 // PreBlocker runs code before the `BeginBlocker`.
-//
-
 type ResponsePreBlock struct {
 	ConsensusParamsChanged bool
 }

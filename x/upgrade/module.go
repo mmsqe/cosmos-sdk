@@ -43,6 +43,7 @@ const (
 
 var (
 	_ module.BeginBlockAppModule = AppModule{}
+	_ module.PreBlockAppModule   = AppModule{}
 	_ module.AppModuleBasic      = AppModuleBasic{}
 )
 

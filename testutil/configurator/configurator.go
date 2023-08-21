@@ -27,6 +27,7 @@ import (
 // Config should never need to be instantiated manually and is solely used for ModuleOption.
 type Config struct {
 	ModuleConfigs      map[string]*appv1alpha1.ModuleConfig
+	PreBlockersOrder   []string
 	BeginBlockersOrder []string
 	EndBlockersOrder   []string
 	InitGenesisOrder   []string
@@ -36,6 +37,9 @@ type Config struct {
 func defaultConfig() *Config {
 	return &Config{
 		ModuleConfigs: make(map[string]*appv1alpha1.ModuleConfig),
+		PreBlockersOrder: []string{
+			"upgrade",
+		},
 		BeginBlockersOrder: []string{
 			"upgrade",
 			"mint",
@@ -101,6 +105,12 @@ func defaultConfig() *Config {
 }
 
 type ModuleOption func(config *Config)
+
+func WithCustomPreBlockersOrder(preBlockOrder ...string) ModuleOption {
+	return func(config *Config) {
+		config.PreBlockersOrder = preBlockOrder
+	}
+}
 
 func WithCustomBeginBlockersOrder(beginBlockOrder ...string) ModuleOption {
 	return func(config *Config) {
