@@ -1,10 +1,11 @@
-package types
+package types_test
 
 import (
 	_ "embed"
 	"strings"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/types"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/stretchr/testify/require"
 )
@@ -80,7 +81,7 @@ func TestParseChainIDFromGenesis(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			chain_id, err := ParseChainIDFromGenesis(strings.NewReader(tc.json))
+			chain_id, err := types.ParseChainIDFromGenesis(strings.NewReader(tc.json))
 			if tc.expChainID == "" {
 				require.Error(t, err)
 			} else {
@@ -96,7 +97,7 @@ func BenchmarkParseChainID(b *testing.B) {
 	b.Run("new", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			chainId, err := ParseChainIDFromGenesis(strings.NewReader(BenchmarkGenesis))
+			chainId, err := types.ParseChainIDFromGenesis(strings.NewReader(BenchmarkGenesis))
 			require.NoError(b, err)
 			require.Equal(b, "test_777-1", chainId)
 		}
