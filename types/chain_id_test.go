@@ -111,4 +111,13 @@ func BenchmarkParseChainID(b *testing.B) {
 			require.Equal(b, "test_777-1", doc.ChainID)
 		}
 	})
+
+	b.Run("jstream", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			chainId, err := types.ParseChainIDFromGenesisJstream(strings.NewReader(BenchmarkGenesis))
+			require.NoError(b, err)
+			require.Equal(b, "test_777-1", chainId)
+		}
+	})
 }

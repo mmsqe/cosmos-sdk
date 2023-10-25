@@ -1,7 +1,6 @@
 {
-  "chain_id": "test_777-1",
   "genesis_time": "2023-09-27T05:35:43.213433Z",
-  "initial_height": "1",
+  "initial_height": 1,
   "consensus_params": {
     "block": {
       "max_bytes": "1048576",
@@ -545,5 +544,6 @@
     },
     "upgrade": {},
     "vesting": {}
-  }
+  },
+  "chain_id": "test_777-1"
 }
