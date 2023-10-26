@@ -25,7 +25,6 @@ import (
 	tmcmd "github.com/cometbft/cometbft/cmd/cometbft/commands"
 	tmcfg "github.com/cometbft/cometbft/config"
 	tmlog "github.com/cometbft/cometbft/libs/log"
-	tmtypes "github.com/cometbft/cometbft/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -38,6 +37,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/mempool"
 	"github.com/cosmos/cosmos-sdk/version"
+	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 )
 
 // DONTCOVER
@@ -458,12 +458,16 @@ func DefaultBaseappOptions(appOpts types.AppOptions) []func(*baseapp.BaseApp) {
 	chainID := cast.ToString(appOpts.Get(flags.FlagChainID))
 	if chainID == "" {
 		// fallback to genesis chain-id
-		appGenesis, err := tmtypes.GenesisDocFromFile(filepath.Join(homeDir, "config", "genesis.json"))
+		reader, err := os.Open(filepath.Join(homeDir, "config", "genesis.json"))
 		if err != nil {
 			panic(err)
 		}
+		defer reader.Close()
 
-		chainID = appGenesis.ChainID
+		chainID, err = genutiltypes.ParseChainIDFromGenesis(reader)
+		if err != nil {
+			panic(fmt.Errorf("failed to parse chain-id from genesis file: %w", err))
+		}
 	}
 
 	snapshotStore, err := GetSnapshotStore(appOpts)
