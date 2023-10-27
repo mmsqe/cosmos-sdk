@@ -123,7 +123,7 @@ func BenchmarkParseChainID(b *testing.B) {
 	b.Run("old", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			doc, err := tmtypes.GenesisDocFromFile("testdata/parse_chain_id.json")
+			doc, err := tmtypes.GenesisDocFromJSON([]byte(BenchmarkGenesis))
 			require.NoError(b, err)
 			require.Equal(b, expChainID, doc.ChainID)
 		}
