@@ -59,6 +59,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * (client/rpc) [#17274](https://github.com/cosmos/cosmos-sdk/pull/17274) Add `QueryEventForTxCmd` cmd to subscribe and wait event for transaction by hash.
 * (keyring) [#17424](https://github.com/cosmos/cosmos-sdk/pull/17424) Allows to import private keys encoded in hex. 
+* (server) [#196](https://github.com/crypto-org-chain/cosmos-sdk/pull/196) Add `md-with-block-time` config for grpc server to include block time in response header. 
 
 ### Improvements
 
