@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -78,8 +79,25 @@ $ %s query staking validator %s1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj
 			if err != nil {
 				return err
 			}
-
-			return clientCtx.PrintProto(&res.Validator)
+			bytes, err := clientCtx.Codec.MarshalJSON(&res.Validator)
+			if err != nil {
+				return err
+			}
+			var data map[string]interface{}
+			err = json.Unmarshal(bytes, &data)
+			if err != nil {
+				return err
+			}
+			valAddr, err := sdk.ValAddressFromBech32(res.Validator.OperatorAddress)
+			if err != nil {
+				return err
+			}
+			data["validator_address"] = sdk.AccAddress(valAddr).String()
+			bytes, err = json.Marshal(data)
+			if err != nil {
+				return err
+			}
+			return clientCtx.PrintBytes(bytes)
 		},
 	}
 
