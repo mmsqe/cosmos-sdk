@@ -11,6 +11,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
@@ -140,7 +141,34 @@ $ %s query staking validators
 				return err
 			}
 
-			return clientCtx.PrintProto(result)
+			newResult := &struct {
+				Validators []interface{}       `json:"validators"`
+				Pagination *query.PageResponse `json:"pagination,omitempty"`
+			}{make([]interface{}, 0, len(result.Validators)), result.Pagination}
+			for _, validator := range result.Validators {
+				validator := validator
+				bytes, err := clientCtx.Codec.MarshalJSON(&validator)
+				if err != nil {
+					return err
+				}
+				var data map[string]interface{}
+				err = json.Unmarshal(bytes, &data)
+				if err != nil {
+					return err
+				}
+				valAddr, err := sdk.ValAddressFromBech32(validator.OperatorAddress)
+				if err != nil {
+					return err
+				}
+				data["validator_address"] = sdk.AccAddress(valAddr).String()
+				newResult.Validators = append(newResult.Validators, data)
+			}
+
+			bytes, err := json.Marshal(newResult)
+			if err != nil {
+				return err
+			}
+			return clientCtx.PrintBytes(bytes)
 		},
 	}
 
