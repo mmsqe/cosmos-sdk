@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -278,9 +279,12 @@ func (s *E2ETestSuite) TestGetCmdQueryValidator() {
 				s.Require().Error(err)
 				s.Require().NotEqual("internal", err.Error())
 			} else {
-				var result types.Validator
-				s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), &result))
-				s.Require().Equal(val.ValAddress.String(), result.OperatorAddress)
+				var result map[string]interface{}
+				s.Require().NoError(json.Unmarshal(out.Bytes(), &result))
+				s.Require().Equal(val.ValAddress.String(), result["operator_address"])
+				valAddr, err := sdk.ValAddressFromBech32(val.ValAddress.String())
+				s.Require().NoError(err)
+				s.Require().Equal(sdk.AccAddress(valAddr).String(), result["validator_address"])
 			}
 		})
 	}
@@ -319,9 +323,21 @@ func (s *E2ETestSuite) TestGetCmdQueryValidators() {
 			out, err := clitestutil.ExecTestCLICmd(clientCtx, cmd, tc.args)
 			s.Require().NoError(err)
 
-			var result types.QueryValidatorsResponse
-			s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), &result))
+			result := struct {
+				Validators []map[string]interface{} `json:"validators"`
+				Pagination *query.PageResponse      `json:"pagination,omitempty"`
+			}{}
+			s.Require().NoError(json.Unmarshal(out.Bytes(), &result))
 			s.Require().Equal(tc.minValidatorCount, len(result.Validators))
+			for _, v2 := range result.Validators {
+				for _, v1 := range s.network.Validators {
+					if v1.Moniker == v2["description"].(map[string]interface{})["moniker"] {
+						s.Require().Equal(v1.ValAddress.String(), v2["operator_address"])
+						s.Require().Equal(v1.Address.String(), v2["validator_address"])
+						break
+					}
+				}
+			}
 		})
 	}
 }
@@ -1526,9 +1542,13 @@ func (s *E2ETestSuite) TestEditValidatorMoniker() {
 		[]string{val.ValAddress.String(), fmt.Sprintf("--%s=json", flags.FlagOutput)},
 	)
 	require.NoError(err)
-	var result types.Validator
-	require.NoError(val.ClientCtx.Codec.UnmarshalJSON(res.Bytes(), &result))
-	require.Equal(result.GetMoniker(), moniker)
+	var result map[string]interface{}
+	s.Require().NoError(json.Unmarshal(res.Bytes(), &result))
+	s.Require().Equal(val.ValAddress.String(), result["operator_address"])
+	valAddr, err := sdk.ValAddressFromBech32(val.ValAddress.String())
+	s.Require().NoError(err)
+	s.Require().Equal(sdk.AccAddress(valAddr).String(), result["validator_address"])
+	require.Equal(result["description"].(map[string]interface{})["moniker"], moniker)
 
 	_, err = clitestutil.ExecTestCLICmd(val.ClientCtx, txCmd, []string{
 		val.ValAddress.String(),
@@ -1546,6 +1566,6 @@ func (s *E2ETestSuite) TestEditValidatorMoniker() {
 		[]string{val.ValAddress.String(), fmt.Sprintf("--%s=json", flags.FlagOutput)},
 	)
 	require.NoError(err)
-	require.NoError(val.ClientCtx.Codec.UnmarshalJSON(res.Bytes(), &result))
-	require.Equal(result.GetMoniker(), moniker)
+	s.Require().NoError(json.Unmarshal(res.Bytes(), &result))
+	require.Equal(result["description"].(map[string]interface{})["moniker"], moniker)
 }
