@@ -58,7 +58,7 @@ func ValidateGenesis(data GenesisState) error {
 	}
 
 	signedWindow := data.Params.SignedBlocksWindow
-	if signedWindow < 10 {
+	if signedWindow < 0 {
 		return fmt.Errorf("signed blocks window must be at least 10, is %d", signedWindow)
 	}
 

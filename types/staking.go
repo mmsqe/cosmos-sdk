@@ -15,7 +15,7 @@ const (
 	// This value is constant as this should not change without a hard fork.
 	// For Tendermint this should be set to 1 block, for more details see:
 	// https://tendermint.com/docs/spec/abci/apps.html#endblock
-	ValidatorUpdateDelay int64 = 1
+	ValidatorUpdateDelay int64 = 3
 )
 
 // DefaultPowerReduction is the default amount of staking tokens required for 1 unit of consensus-engine power
