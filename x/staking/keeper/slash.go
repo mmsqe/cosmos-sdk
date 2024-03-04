@@ -32,6 +32,7 @@ import (
 func (k Keeper) Slash(ctx sdk.Context, consAddr sdk.ConsAddress, infractionHeight int64, power int64, slashFactor sdk.Dec) math.Int {
 	logger := k.Logger(ctx)
 
+	fmt.Println("mm-Slash", infractionHeight, ctx.BlockHeight())
 	if slashFactor.IsNegative() {
 		panic(fmt.Errorf("attempted to slash with a negative slash factor: %v", slashFactor))
 	}
@@ -100,6 +101,7 @@ func (k Keeper) Slash(ctx sdk.Context, consAddr sdk.ConsAddress, infractionHeigh
 
 		// Iterate through redelegations from slashed source validator
 		redelegations := k.GetRedelegationsFromSrcValidator(ctx, operatorAddress)
+		fmt.Println("mm-redelegations", redelegations, operatorAddress.String())
 		for _, redelegation := range redelegations {
 			amountSlashed := k.SlashRedelegation(ctx, validator, redelegation, infractionHeight, slashFactor)
 			if amountSlashed.IsZero() {
@@ -235,6 +237,7 @@ func (k Keeper) SlashRedelegation(ctx sdk.Context, srcValidator types.Validator,
 
 	// perform slashing on all entries within the redelegation
 	for _, entry := range redelegation.Entries {
+		fmt.Println("mm-fork-entry", entry.String(), entry.CreationHeight, infractionHeight, entry.IsMature(now))
 		// If redelegation started before this height, stake didn't contribute to infraction
 		if entry.CreationHeight < infractionHeight {
 			continue
@@ -249,21 +252,24 @@ func (k Keeper) SlashRedelegation(ctx sdk.Context, srcValidator types.Validator,
 		slashAmountDec := slashFactor.MulInt(entry.InitialBalance)
 		slashAmount := slashAmountDec.TruncateInt()
 		totalSlashAmount = totalSlashAmount.Add(slashAmount)
-
+		fmt.Println("mm-forkEnabled-slash", slashAmountDec, slashAmount, totalSlashAmount)
 		valDstAddr, err := sdk.ValAddressFromBech32(redelegation.ValidatorDstAddress)
 		if err != nil {
 			panic(err)
 		}
-
 		if k.forkEnabledFunc(ctx) {
+			fmt.Println("mm-forkEnabledFunc-slashAmount", slashAmount.String())
 			// Handle undelegation after redelegation
 			// Prioritize slashing unbondingDelegation than delegation
-			unbondingDelegation, found := k.GetUnbondingDelegation(ctx, sdk.MustAccAddressFromBech32(redelegation.DelegatorAddress), valDstAddr)
+			del := sdk.MustAccAddressFromBech32(redelegation.DelegatorAddress)
+			unbondingDelegation, found := k.GetUnbondingDelegation(ctx, del, valDstAddr)
+			fmt.Println("mm-forkEnabledFunc-unbondingDelegation", del.String(), valDstAddr.String(), unbondingDelegation, found)
 			if found {
 				for i, entry := range unbondingDelegation.Entries {
 					// slash with the amount of `slashAmount` if possible, else slash all unbonding token
 					unbondingSlashAmount := math.MinInt(slashAmount, entry.Balance)
 
+					fmt.Println("mm-forkEnabledFunc-entry", entry, unbondingSlashAmount, entry.IsMature(now))
 					switch {
 					// There's no token to slash
 					case unbondingSlashAmount.IsZero():
@@ -278,9 +284,9 @@ func (k Keeper) SlashRedelegation(ctx sdk.Context, srcValidator types.Validator,
 					default:
 						// update remaining slashAmount
 						slashAmount = slashAmount.Sub(unbondingSlashAmount)
-
 						notBondedBurnedAmount = notBondedBurnedAmount.Add(unbondingSlashAmount)
 						entry.Balance = entry.Balance.Sub(unbondingSlashAmount)
+						fmt.Println("mm-forkEnabledFunc-entry.Balance", entry.Balance)
 						unbondingDelegation.Entries[i] = entry
 						k.SetUnbondingDelegation(ctx, unbondingDelegation)
 					}
@@ -313,6 +319,7 @@ func (k Keeper) SlashRedelegation(ctx sdk.Context, srcValidator types.Validator,
 		}
 
 		tokensToBurn, err := k.Unbond(ctx, delegatorAddress, valDstAddr, sharesToUnbond)
+		fmt.Println("mm-forkEnabledFunc-tokensToBurn", tokensToBurn)
 		if err != nil {
 			panic(fmt.Errorf("error unbonding delegator: %v", err))
 		}
@@ -333,10 +340,11 @@ func (k Keeper) SlashRedelegation(ctx sdk.Context, srcValidator types.Validator,
 			panic("unknown validator status")
 		}
 	}
-
+	fmt.Println("mm-forkEnabledFunc-bondedBurnedAmount", bondedBurnedAmount)
 	if err := k.burnBondedTokens(ctx, bondedBurnedAmount); err != nil {
 		panic(err)
 	}
+	fmt.Println("mm-forkEnabledFunc-notBondedBurnedAmount", notBondedBurnedAmount)
 
 	if err := k.burnNotBondedTokens(ctx, notBondedBurnedAmount); err != nil {
 		panic(err)

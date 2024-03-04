@@ -134,6 +134,7 @@ func (k Keeper) GetUnbondingDelegations(ctx sdk.Context, delegator sdk.AccAddres
 
 // GetUnbondingDelegation returns a unbonding delegation.
 func (k Keeper) GetUnbondingDelegation(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (ubd types.UnbondingDelegation, found bool) {
+	fmt.Println("mm-GetUnbondingDelegation:", delAddr.String(), valAddr.String())
 	store := ctx.KVStore(k.storeKey)
 	key := types.GetUBDKey(delAddr, valAddr)
 	value := store.Get(key)
@@ -271,6 +272,7 @@ func (k Keeper) HasMaxUnbondingDelegationEntries(ctx sdk.Context, delegatorAddr 
 
 // SetUnbondingDelegation sets the unbonding delegation and associated index.
 func (k Keeper) SetUnbondingDelegation(ctx sdk.Context, ubd types.UnbondingDelegation) {
+	fmt.Println("mm-SetUnbondingDelegation:", ubd.DelegatorAddress, ubd.ValidatorAddress)
 	delegatorAddress := sdk.MustAccAddressFromBech32(ubd.DelegatorAddress)
 
 	store := ctx.KVStore(k.storeKey)
@@ -286,6 +288,7 @@ func (k Keeper) SetUnbondingDelegation(ctx sdk.Context, ubd types.UnbondingDeleg
 
 // RemoveUnbondingDelegation removes the unbonding delegation object and associated index.
 func (k Keeper) RemoveUnbondingDelegation(ctx sdk.Context, ubd types.UnbondingDelegation) {
+	fmt.Println("mm-RemoveUnbondingDelegation:", ubd.DelegatorAddress, ubd.ValidatorAddress)
 	delegatorAddress := sdk.MustAccAddressFromBech32(ubd.DelegatorAddress)
 
 	store := ctx.KVStore(k.storeKey)
@@ -428,6 +431,7 @@ func (k Keeper) GetRedelegationsFromSrcValidator(ctx sdk.Context, valAddr sdk.Va
 	iterator := sdk.KVStorePrefixIterator(store, types.GetREDsFromValSrcIndexKey(valAddr))
 	defer iterator.Close()
 
+	fmt.Println("mm-GetRedelegationsFromSrcValidator:", valAddr.String())
 	for ; iterator.Valid(); iterator.Next() {
 		key := types.GetREDKeyFromValSrcIndexKey(iterator.Key())
 		value := store.Get(key)
@@ -461,6 +465,7 @@ func (k Keeper) HasMaxRedelegationEntries(ctx sdk.Context, delegatorAddr sdk.Acc
 
 // SetRedelegation set a redelegation and associated index.
 func (k Keeper) SetRedelegation(ctx sdk.Context, red types.Redelegation) {
+	fmt.Println("mm-SetRedelegation", red.String())
 	delegatorAddress := sdk.MustAccAddressFromBech32(red.DelegatorAddress)
 
 	store := ctx.KVStore(k.storeKey)
@@ -473,6 +478,7 @@ func (k Keeper) SetRedelegation(ctx sdk.Context, red types.Redelegation) {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("mm-SetRedelegation-key", delegatorAddress.String(), valSrcAddr.String(), valDestAddr.String())
 	key := types.GetREDKey(delegatorAddress, valSrcAddr, valDestAddr)
 	store.Set(key, bz)
 	store.Set(types.GetREDByValSrcIndexKey(delegatorAddress, valSrcAddr, valDestAddr), []byte{})
@@ -518,6 +524,7 @@ func (k Keeper) IterateRedelegations(ctx sdk.Context, fn func(index int64, red t
 
 // RemoveRedelegation removes a redelegation object and associated index.
 func (k Keeper) RemoveRedelegation(ctx sdk.Context, red types.Redelegation) {
+	fmt.Println("mm-RemoveRedelegation", red)
 	delegatorAddress := sdk.MustAccAddressFromBech32(red.DelegatorAddress)
 
 	store := ctx.KVStore(k.storeKey)
@@ -770,6 +777,7 @@ func (k Keeper) getBeginInfo(
 	ctx sdk.Context, valSrcAddr sdk.ValAddress,
 ) (completionTime time.Time, height int64, completeNow bool) {
 	validator, found := k.GetValidator(ctx, valSrcAddr)
+	fmt.Println("mm-getBeginInfo", validator, found)
 
 	// TODO: When would the validator not be found?
 	switch {
