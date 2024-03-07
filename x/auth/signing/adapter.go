@@ -41,9 +41,17 @@ func GetSignBytesAdapter(
 		return nil, err
 	}
 
-	anyPk, err := codectypes.NewAnyWithValue(signerData.PubKey)
-	if err != nil {
-		return nil, err
+	var pubKey *anypb.Any
+	if signerData.PubKey != nil {
+		anyPk, err := codectypes.NewAnyWithValue(signerData.PubKey)
+		if err != nil {
+			return nil, err
+		}
+
+		pubKey = &anypb.Any{
+			TypeUrl: anyPk.TypeUrl,
+			Value:   anyPk.Value,
+		}
 	}
 
 	txSignerData := txsigning.SignerData{
@@ -51,10 +59,7 @@ func GetSignBytesAdapter(
 		AccountNumber: signerData.AccountNumber,
 		Sequence:      signerData.Sequence,
 		Address:       signerData.Address,
-		PubKey: &anypb.Any{
-			TypeUrl: anyPk.TypeUrl,
-			Value:   anyPk.Value,
-		},
+		PubKey:        pubKey,
 	}
 	// Generate the bytes to be signed.
 	return handlerMap.GetSignBytes(ctx, txSignMode, txSignerData, txData)
