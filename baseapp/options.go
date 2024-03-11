@@ -124,6 +124,11 @@ func SetOptimisticExecution(opts ...func(*oe.OptimisticExecution)) func(*BaseApp
 	}
 }
 
+// DisableBlockGasMeter disables the block gas meter.
+func DisableBlockGasMeter() func(*BaseApp) {
+	return func(app *BaseApp) { app.SetDisableBlockGasMeter(true) }
+}
+
 // SetTxExecutor sets a custom tx executor for the BaseApp, usually for parallel execution.
 func SetTxExecutor(executor TxExecutor) func(*BaseApp) {
 	return func(app *BaseApp) { app.txExecutor = executor }
@@ -411,6 +416,11 @@ func (app *BaseApp) SetMsgServiceRouter(msgServiceRouter *MsgServiceRouter) {
 // SetGRPCQueryRouter sets the GRPCQueryRouter of the BaseApp.
 func (app *BaseApp) SetGRPCQueryRouter(grpcQueryRouter *GRPCQueryRouter) {
 	app.grpcQueryRouter = grpcQueryRouter
+}
+
+// SetDisableBlockGasMeter sets the disableBlockGasMeter flag for the BaseApp.
+func (app *BaseApp) SetDisableBlockGasMeter(disableBlockGasMeter bool) {
+	app.disableBlockGasMeter = disableBlockGasMeter
 }
 
 // SetTxExecutor sets a custom tx executor for the BaseApp, usually for parallel execution.
