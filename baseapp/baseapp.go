@@ -189,6 +189,13 @@ type BaseApp struct {
 	// includeNestedMsgsGas holds a set of message types for which gas costs for its nested messages are calculated.
 	includeNestedMsgsGas map[string]struct{}
 
+	// disableBlockGasMeter will disable the block gas meter if true, block gas meter is tricky to support
+	// when executing transactions in parallel.
+	// when disabled, the block gas meter in context is a noop one.
+	//
+	// SAFETY: it's safe to do if validators validate the total gas wanted in the `ProcessProposal`, which is the case in the default handler.
+	disableBlockGasMeter bool
+
 	// Optional alternative tx executor, used for block-stm parallel transaction execution.
 	txExecutor TxExecutor
 }
@@ -662,6 +669,10 @@ func (app *BaseApp) getState(mode execMode) *state {
 }
 
 func (app *BaseApp) getBlockGasMeter(ctx sdk.Context) storetypes.GasMeter {
+	if app.disableBlockGasMeter {
+		return noopGasMeter{}
+	}
+
 	if maxGas := app.GetMaximumBlockGas(ctx); maxGas > 0 {
 		return storetypes.NewGasMeter(maxGas)
 	}
