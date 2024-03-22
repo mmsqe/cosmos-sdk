@@ -358,11 +358,11 @@ func (app *BaseApp) ApplySnapshotChunk(req *abci.ApplySnapshotChunkRequest) (*ab
 func (app *BaseApp) CheckTx(req *abci.CheckTxRequest) (*abci.CheckTxResponse, error) {
 	var mode execMode
 
-	switch {
-	case req.Type == abci.CHECK_TX_TYPE_CHECK:
+	switch req.Type {
+	case abci.CHECK_TX_TYPE_CHECK:
 		mode = execModeCheck
 
-	case req.Type == abci.CHECK_TX_TYPE_RECHECK:
+	case abci.CHECK_TX_TYPE_RECHECK:
 		mode = execModeReCheck
 
 	default:
@@ -834,40 +834,33 @@ func (app *BaseApp) internalFinalizeBlock(ctx context.Context, req *abci.Finaliz
 
 	// Reset the gas meter so that the AnteHandlers aren't required to
 	gasMeter = app.getBlockGasMeter(app.finalizeBlockState.Context())
-	app.finalizeBlockState.SetContext(app.finalizeBlockState.Context().WithBlockGasMeter(gasMeter))
+	app.finalizeBlockState.SetContext(
+		app.finalizeBlockState.Context().
+			WithBlockGasMeter(gasMeter).
+			WithTxCount(len(req.Txs)),
+	)
 
 	// Iterate over all raw transactions in the proposal and attempt to execute
 	// them, gathering the execution results.
 	//
 	// NOTE: Not all raw transactions may adhere to the sdk.Tx interface, e.g.
 	// vote extensions, so skip those.
-	txResults := make([]*abci.ExecTxResult, 0, len(req.Txs))
-	for txIndex, rawTx := range req.Txs {
-
-		response := app.deliverTx(rawTx)
-
-		// check after every tx if we should abort
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-			// continue
-		}
-
-		// append the tx index to the response.Events
-		for i, event := range response.Events {
-			response.Events[i].Attributes = append(event.Attributes,
-				abci.EventAttribute{Key: "tx_index", Value: strconv.Itoa(txIndex)})
-		}
-
-		txResults = append(txResults, response)
+	txResults, err := app.executeTxs(ctx, req.Txs)
+	if err != nil {
+		// usually due to canceled
+		return nil, err
 	}
 
 	if app.finalizeBlockState.ms.TracingEnabled() {
 		app.finalizeBlockState.ms = app.finalizeBlockState.ms.SetTracingContext(nil).(storetypes.CacheMultiStore)
 	}
 
-	endBlock, err := app.endBlock(app.finalizeBlockState.Context())
+	var blockGasUsed uint64
+	for _, res := range txResults {
+		blockGasUsed += uint64(res.GasUsed)
+	}
+	sdkCtx := app.finalizeBlockState.Context().WithBlockGasUsed(blockGasUsed)
+	endBlock, err := app.endBlock(sdkCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -889,6 +882,35 @@ func (app *BaseApp) internalFinalizeBlock(ctx context.Context, req *abci.Finaliz
 		ValidatorUpdates:      endBlock.ValidatorUpdates,
 		ConsensusParamUpdates: &cp,
 	}, nil
+}
+
+func (app *BaseApp) executeTxs(ctx context.Context, txs [][]byte) ([]*abci.ExecTxResult, error) {
+	if app.txExecutor != nil {
+		return app.txExecutor(ctx, len(txs), app.finalizeBlockState.ms, func(i int, ms storetypes.MultiStore) *abci.ExecTxResult {
+			return app.deliverTxWithMultiStore(txs[i], i, ms)
+		})
+	}
+
+	txResults := make([]*abci.ExecTxResult, 0, len(txs))
+	for i, rawTx := range txs {
+		response := app.deliverTx(rawTx, i)
+		// check after every tx if we should abort
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			// continue
+		}
+
+		// append the tx index to the response.Events
+		for i, event := range response.Events {
+			response.Events[i].Attributes = append(event.Attributes,
+				abci.EventAttribute{Key: "tx_index", Value: strconv.Itoa(i)})
+		}
+
+		txResults = append(txResults, response)
+	}
+	return txResults, nil
 }
 
 // FinalizeBlock will execute the block proposal provided by RequestFinalizeBlock.
