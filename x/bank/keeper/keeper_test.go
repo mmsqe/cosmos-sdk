@@ -26,6 +26,8 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 const (
@@ -95,6 +97,8 @@ func (suite *KeeperTestSuite) SetupTest() {
 	authKeeper := banktestutil.NewMockAccountKeeper(ctrl)
 
 	suite.ctx = ctx
+	tkey := sdk.NewTransientStoreKey("params_transient_test")
+	paramsKeeper := paramskeeper.NewKeeper(encCfg.Codec, encCfg.Amino, key, tkey)
 	suite.authKeeper = authKeeper
 	suite.bankKeeper = keeper.NewBaseKeeper(
 		encCfg.Codec,
@@ -102,6 +106,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 		suite.authKeeper,
 		map[string]bool{accAddrs[4].String(): true},
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		paramsKeeper.Subspace(banktypes.ModuleName),
 	)
 
 	banktypes.RegisterInterfaces(encCfg.InterfaceRegistry)
@@ -203,6 +208,7 @@ func (suite *KeeperTestSuite) TestGetAuthority() {
 			nil,
 			nil,
 			authority,
+			paramstypes.Subspace{},
 		)
 	}
 
@@ -1694,6 +1700,10 @@ type mockSubspace struct {
 }
 
 func (ms mockSubspace) GetParamSet(ctx sdk.Context, ps exported.ParamSet) {
+	*ps.(*banktypes.Params) = ms.ps
+}
+
+func (ms mockSubspace) GetParamSetIfExists(ctx sdk.Context, ps exported.ParamSet) {
 	*ps.(*banktypes.Params) = ms.ps
 }
 

@@ -25,6 +25,10 @@ func (ms mockSubspace) GetParamSet(ctx sdk.Context, ps exported.ParamSet) {
 	*ps.(*types.Params) = ms.ps
 }
 
+func (ms mockSubspace) GetParamSetIfExists(ctx sdk.Context, ps exported.ParamSet) {
+	*ps.(*types.Params) = ms.ps
+}
+
 func (ms mockSubspace) Get(ctx sdk.Context, key []byte, ptr interface{}) {}
 
 func TestMigrate(t *testing.T) {

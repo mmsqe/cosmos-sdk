@@ -12,6 +12,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/address"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/bank/exported"
 	"github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
@@ -59,7 +60,8 @@ type BaseSendKeeper struct {
 
 	// the address capable of executing a MsgUpdateParams message. Typically, this
 	// should be the x/gov module account.
-	authority string
+	authority      string
+	legacySubspace exported.Subspace
 }
 
 func NewBaseSendKeeper(
@@ -68,6 +70,7 @@ func NewBaseSendKeeper(
 	ak types.AccountKeeper,
 	blockedAddrs map[string]bool,
 	authority string,
+	legacySubspace exported.Subspace,
 ) BaseSendKeeper {
 	if _, err := sdk.AccAddressFromBech32(authority); err != nil {
 		panic(fmt.Errorf("invalid bank authority address: %w", err))
@@ -80,6 +83,7 @@ func NewBaseSendKeeper(
 		storeKey:       storeKey,
 		blockedAddrs:   blockedAddrs,
 		authority:      authority,
+		legacySubspace: legacySubspace,
 	}
 }
 

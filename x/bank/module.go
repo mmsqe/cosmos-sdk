@@ -253,6 +253,7 @@ func ProvideModule(in BankInputs) BankOutputs {
 		in.AccountKeeper,
 		blockedAddresses,
 		authority.String(),
+		in.LegacySubspace,
 	)
 	m := NewAppModule(in.Cdc, bankKeeper, in.AccountKeeper, in.LegacySubspace)
 

@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"slices"
 
 	"cosmossdk.io/math"
 	gogotypes "github.com/cosmos/gogoproto/types"
@@ -293,6 +294,37 @@ func (k BaseKeeper) SendEnabled(goCtx context.Context, req *types.QuerySendEnabl
 		)
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
+		}
+	}
+
+	if len(resp.SendEnabled) == 0 {
+		var params types.Params
+		k.legacySubspace.GetParamSetIfExists(ctx, &params)
+		if len(req.Denoms) > 0 {
+			for _, sendEnabled := range params.SendEnabled {
+				if slices.Contains(req.Denoms, sendEnabled.Denom) {
+					resp.SendEnabled = append(resp.SendEnabled, sendEnabled)
+				}
+			}
+		} else {
+			resp.SendEnabled = params.SendEnabled
+			resp.Pagination = new(query.PageResponse)
+
+			if req.Pagination == nil {
+				req.Pagination = new(query.PageRequest)
+			}
+			if req.Pagination.Reverse {
+				slices.Reverse(resp.SendEnabled)
+			}
+			if offset := req.Pagination.Offset; int(offset) <= len(resp.SendEnabled) {
+				resp.SendEnabled = resp.SendEnabled[offset:]
+			}
+			if limit := req.Pagination.Limit; limit > 0 {
+				resp.SendEnabled = resp.SendEnabled[:limit]
+			}
+			if req.Pagination.CountTotal {
+				resp.Pagination.Total = uint64(len(params.SendEnabled))
+			}
 		}
 	}
 

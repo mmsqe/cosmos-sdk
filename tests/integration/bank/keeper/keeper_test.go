@@ -39,6 +39,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 const (
@@ -114,7 +115,7 @@ func (suite *IntegrationTestSuite) initKeepersWithmAccPerms(blockedAddrs map[str
 		maccPerms, sdk.Bech32MainPrefix, authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 	bankKeeper := keeper.NewBaseKeeper(
-		appCodec, suite.fetchStoreKey(types.StoreKey), authKeeper, blockedAddrs, authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		appCodec, suite.fetchStoreKey(types.StoreKey), authKeeper, blockedAddrs, authtypes.NewModuleAddress(govtypes.ModuleName).String(), paramstypes.Subspace{},
 	)
 
 	return authKeeper, bankKeeper
@@ -1110,7 +1111,7 @@ func (suite *IntegrationTestSuite) TestBalanceTrackingEvents() {
 	)
 
 	suite.bankKeeper = keeper.NewBaseKeeper(suite.appCodec, suite.fetchStoreKey(types.StoreKey),
-		suite.accountKeeper, nil, authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		suite.accountKeeper, nil, authtypes.NewModuleAddress(govtypes.ModuleName).String(), paramstypes.Subspace{},
 	)
 
 	// set account with multiple permissions
@@ -1273,7 +1274,7 @@ func (suite *IntegrationTestSuite) TestMintCoinRestrictions() {
 
 	for _, test := range tests {
 		suite.bankKeeper = keeper.NewBaseKeeper(suite.appCodec, suite.fetchStoreKey(types.StoreKey),
-			suite.accountKeeper, nil, authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+			suite.accountKeeper, nil, authtypes.NewModuleAddress(govtypes.ModuleName).String(), paramstypes.Subspace{},
 		).WithMintCoinsRestriction(keeper.MintingRestrictionFn(test.restrictionFn))
 		for _, testCase := range test.testCases {
 			if testCase.expectPass {
@@ -1639,6 +1640,10 @@ type mockSubspace struct {
 }
 
 func (ms mockSubspace) GetParamSet(ctx sdk.Context, ps exported.ParamSet) {
+	*ps.(*types.Params) = ms.ps
+}
+
+func (ms mockSubspace) GetParamSetIfExists(ctx sdk.Context, ps exported.ParamSet) {
 	*ps.(*types.Params) = ms.ps
 }
 
