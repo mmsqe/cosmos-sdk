@@ -3,7 +3,9 @@ package keeper_test
 import (
 	"testing"
 
+	"cosmossdk.io/depinject"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
@@ -12,23 +14,46 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	distrtestutil "github.com/cosmos/cosmos-sdk/x/distribution/testutil"
 	"github.com/cosmos/cosmos-sdk/x/distribution/types"
+	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
+	paramstestutil "github.com/cosmos/cosmos-sdk/x/params/testutil"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
+type invalid struct{}
+
+type s struct {
+	I int
+}
+
+func createTestCodec() *codec.LegacyAmino {
+	cdc := codec.NewLegacyAmino()
+	sdk.RegisterLegacyAminoCodec(cdc)
+	cdc.RegisterConcrete(s{}, "test/s", nil)
+	cdc.RegisterConcrete(invalid{}, "test/invalid", nil)
+	return cdc
+}
+
 func TestParams(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	key := sdk.NewKVStoreKey(types.StoreKey)
-	testCtx := testutil.DefaultContextWithDB(t, key, sdk.NewTransientStoreKey("transient_test"))
+	tkey := sdk.NewTransientStoreKey("transient_test")
+	testCtx := testutil.DefaultContextWithDB(t, key, tkey)
 	encCfg := moduletestutil.MakeTestEncodingConfig(distribution.AppModuleBasic{})
 	ctx := testCtx.Ctx.WithBlockHeader(tmproto.Header{Height: 1})
-
 	bankKeeper := distrtestutil.NewMockBankKeeper(ctrl)
 	stakingKeeper := distrtestutil.NewMockStakingKeeper(ctrl)
 	accountKeeper := distrtestutil.NewMockAccountKeeper(ctrl)
-
 	accountKeeper.EXPECT().GetModuleAddress("distribution").Return(distrAcc.GetAddress())
-
+	var cdc codec.Codec
+	if err := depinject.Inject(paramstestutil.AppConfig, &cdc); err != nil {
+		panic(err)
+	}
+	legacyAmino := createTestCodec()
+	paramsKeeper := paramskeeper.NewKeeper(cdc, legacyAmino, key, tkey)
+	paramsKeeper.Subspace(distrtypes.ModuleName).WithKeyTable(distrtypes.ParamKeyTable()) //nolint:staticcheck
+	distrS, _ := paramsKeeper.GetSubspace(distrtypes.ModuleName)
 	distrKeeper := keeper.NewKeeper(
 		encCfg.Codec,
 		key,
@@ -37,6 +62,7 @@ func TestParams(t *testing.T) {
 		stakingKeeper,
 		"fee_collector",
 		authtypes.NewModuleAddress("gov").String(),
+		distrS,
 	)
 
 	// default params

@@ -9,6 +9,7 @@ import (
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/distribution/exported"
 	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
 
@@ -24,6 +25,7 @@ type Keeper struct {
 	authority string
 
 	feeCollectorName string // name of the FeeCollector ModuleAccount
+	legacySubspace   exported.Subspace
 }
 
 // NewKeeper creates a new distribution Keeper instance
@@ -31,6 +33,7 @@ func NewKeeper(
 	cdc codec.BinaryCodec, key storetypes.StoreKey,
 	ak types.AccountKeeper, bk types.BankKeeper, sk types.StakingKeeper,
 	feeCollectorName string, authority string,
+	legacySubspace exported.Subspace,
 ) Keeper {
 	// ensure distribution module account is set
 	if addr := ak.GetModuleAddress(types.ModuleName); addr == nil {
@@ -45,6 +48,7 @@ func NewKeeper(
 		stakingKeeper:    sk,
 		feeCollectorName: feeCollectorName,
 		authority:        authority,
+		legacySubspace:   legacySubspace,
 	}
 }
 

@@ -17,6 +17,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	distrtestutil "github.com/cosmos/cosmos-sdk/x/distribution/testutil"
 	disttypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
@@ -41,6 +42,7 @@ func TestCalculateRewardsBasic(t *testing.T) {
 		stakingKeeper,
 		"fee_collector",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	// reset fee pool
@@ -119,6 +121,7 @@ func TestCalculateRewardsAfterSlash(t *testing.T) {
 		stakingKeeper,
 		"fee_collector",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	// reset fee pool
@@ -214,6 +217,7 @@ func TestCalculateRewardsAfterManySlashes(t *testing.T) {
 		stakingKeeper,
 		"fee_collector",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	// reset fee pool
@@ -329,6 +333,7 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 		stakingKeeper,
 		"fee_collector",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	// reset fee pool
@@ -419,6 +424,7 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 		stakingKeeper,
 		"fee_collector",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	// reset fee pool
@@ -491,6 +497,7 @@ func TestCalculateRewardsAfterManySlashesInSameBlock(t *testing.T) {
 		stakingKeeper,
 		"fee_collector",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	// reset fee pool
@@ -598,6 +605,7 @@ func TestCalculateRewardsMultiDelegatorMultiSlash(t *testing.T) {
 		stakingKeeper,
 		"fee_collector",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	// reset fee pool
@@ -725,6 +733,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 		stakingKeeper,
 		"fee_collector",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	// reset fee pool
@@ -908,6 +917,7 @@ func Test100PercentCommissionReward(t *testing.T) {
 		stakingKeeper,
 		"fee_collector",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	// reset fee pool

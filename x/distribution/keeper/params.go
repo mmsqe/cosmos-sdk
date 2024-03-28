@@ -11,7 +11,8 @@ import (
 func (k Keeper) GetParams(clientCtx sdk.Context) (params types.Params) {
 	store := clientCtx.KVStore(k.storeKey)
 	bz := store.Get(types.ParamsKey)
-	if bz == nil {
+	if len(bz) == 0 {
+		k.legacySubspace.GetParamSetIfExists(clientCtx, &params)
 		return params
 	}
 

@@ -18,6 +18,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	distrtestutil "github.com/cosmos/cosmos-sdk/x/distribution/testutil"
 	"github.com/cosmos/cosmos-sdk/x/distribution/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 func TestSetWithdrawAddr(t *testing.T) {
@@ -48,6 +49,7 @@ func TestSetWithdrawAddr(t *testing.T) {
 		stakingKeeper,
 		"fee_collector",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	params := types.DefaultParams()
@@ -95,6 +97,7 @@ func TestWithdrawValidatorCommission(t *testing.T) {
 		stakingKeeper,
 		"fee_collector",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	// set outstanding rewards
@@ -146,6 +149,7 @@ func TestGetTotalRewards(t *testing.T) {
 		stakingKeeper,
 		"fee_collector",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	valCommission := sdk.DecCoins{
@@ -184,6 +188,7 @@ func TestFundCommunityPool(t *testing.T) {
 		stakingKeeper,
 		"fee_collector",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	// reset fee pool
