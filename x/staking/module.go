@@ -234,6 +234,7 @@ func ProvideModule(in StakingInputs) StakingOutputs {
 		in.AccountKeeper,
 		in.BankKeeper,
 		authority.String(),
+		in.LegacySubspace,
 	)
 	m := NewAppModule(in.Cdc, k, in.AccountKeeper, in.BankKeeper, in.LegacySubspace)
 	return StakingOutputs{StakingKeeper: k, Module: m}

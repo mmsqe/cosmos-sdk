@@ -11,6 +11,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/staking/exported"
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
@@ -22,12 +23,13 @@ var _ types.DelegationSet = Keeper{}
 
 // Keeper of the x/staking store
 type Keeper struct {
-	storeKey   storetypes.StoreKey
-	cdc        codec.BinaryCodec
-	authKeeper types.AccountKeeper
-	bankKeeper types.BankKeeper
-	hooks      types.StakingHooks
-	authority  string
+	storeKey       storetypes.StoreKey
+	cdc            codec.BinaryCodec
+	authKeeper     types.AccountKeeper
+	bankKeeper     types.BankKeeper
+	hooks          types.StakingHooks
+	authority      string
+	legacySubspace exported.Subspace
 }
 
 // NewKeeper creates a new staking Keeper instance
@@ -37,6 +39,7 @@ func NewKeeper(
 	ak types.AccountKeeper,
 	bk types.BankKeeper,
 	authority string,
+	legacySubspace exported.Subspace,
 ) *Keeper {
 	// ensure bonded and not bonded module accounts are set
 	if addr := ak.GetModuleAddress(types.BondedPoolName); addr == nil {
@@ -53,12 +56,13 @@ func NewKeeper(
 	}
 
 	return &Keeper{
-		storeKey:   key,
-		cdc:        cdc,
-		authKeeper: ak,
-		bankKeeper: bk,
-		hooks:      nil,
-		authority:  authority,
+		storeKey:       key,
+		cdc:            cdc,
+		authKeeper:     ak,
+		bankKeeper:     bk,
+		hooks:          nil,
+		authority:      authority,
+		legacySubspace: legacySubspace,
 	}
 }
 

@@ -69,7 +69,8 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) error {
 func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.ParamsKey)
-	if bz == nil {
+	if len(bz) == 0 {
+		k.legacySubspace.GetParamSetIfExists(ctx, &params)
 		return params
 	}
 

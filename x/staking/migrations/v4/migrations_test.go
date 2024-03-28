@@ -30,6 +30,10 @@ func (ms mockSubspace) GetParamSet(ctx sdk.Context, ps paramtypes.ParamSet) {
 	*ps.(*types.Params) = ms.ps
 }
 
+func (ms mockSubspace) GetParamSetIfExists(ctx sdk.Context, ps paramtypes.ParamSet) {
+	*ps.(*types.Params) = ms.ps
+}
+
 func TestMigrate(t *testing.T) {
 	cdc := moduletestutil.MakeTestEncodingConfig(staking.AppModuleBasic{}).Codec
 
