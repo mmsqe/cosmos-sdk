@@ -19,6 +19,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 type DeterministicTestSuite struct {
@@ -66,6 +67,7 @@ func (suite *DeterministicTestSuite) SetupTest() {
 		maccPerms,
 		"cosmos",
 		types.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	queryHelper := baseapp.NewQueryServerTestHelper(suite.ctx, suite.encCfg.InterfaceRegistry)
@@ -285,6 +287,7 @@ func (suite *DeterministicTestSuite) TestGRPCQueryModuleAccounts() {
 			maccPerms,
 			"cosmos",
 			types.NewModuleAddress("gov").String(),
+			paramstypes.Subspace{},
 		)
 		suite.setModuleAccounts(suite.ctx, ak, maccs)
 
@@ -331,6 +334,7 @@ func (suite *DeterministicTestSuite) TestGRPCQueryModuleAccountByName() {
 			maccPerms,
 			"cosmos",
 			types.NewModuleAddress("gov").String(),
+			paramstypes.Subspace{},
 		)
 		suite.setModuleAccounts(suite.ctx, ak, []string{mName})
 

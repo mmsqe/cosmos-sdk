@@ -34,6 +34,10 @@ func (ms mockSubspace) GetParamSet(ctx sdk.Context, ps authexported.ParamSet) {
 	*ps.(*authtypes.Params) = ms.ps
 }
 
+func (ms mockSubspace) GetParamSetIfExists(ctx sdk.Context, ps authexported.ParamSet) {
+	*ps.(*authtypes.Params) = ms.ps
+}
+
 // TestMigrateMapAccAddressToAccNumberKey test cases for state migration of map to accAddr to accNum
 func TestMigrateMapAccAddressToAccNumberKey(t *testing.T) {
 	encCfg := moduletestutil.MakeTestEncodingConfig(auth.AppModuleBasic{})

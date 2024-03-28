@@ -22,6 +22,7 @@ import (
 	xauthsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 	authtestutil "github.com/cosmos/cosmos-sdk/x/auth/testutil"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 // TestAccount represents an account used in the tests in x/auth/ante.
@@ -66,6 +67,7 @@ func SetupTestSuite(t *testing.T, isCheckTx bool) *AnteTestSuite {
 
 	suite.accountKeeper = keeper.NewAccountKeeper(
 		suite.encCfg.Codec, key, types.ProtoBaseAccount, maccPerms, sdk.Bech32MainPrefix, types.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 	suite.accountKeeper.GetModuleAccount(suite.ctx, types.FeeCollectorName)
 	err := suite.accountKeeper.SetParams(suite.ctx, types.DefaultParams())

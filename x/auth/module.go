@@ -239,7 +239,7 @@ func ProvideModule(in AuthInputs) AuthOutputs {
 		in.AccountI = types.ProtoBaseAccount
 	}
 
-	k := keeper.NewAccountKeeper(in.Cdc, in.Key, in.AccountI, maccPerms, in.Config.Bech32Prefix, authority.String())
+	k := keeper.NewAccountKeeper(in.Cdc, in.Key, in.AccountI, maccPerms, in.Config.Bech32Prefix, authority.String(), in.LegacySubspace)
 	m := NewAppModule(in.Cdc, k, in.RandomGenesisAccountsFn, in.LegacySubspace)
 
 	return AuthOutputs{AccountKeeper: k, Module: m}

@@ -22,7 +22,8 @@ func (ak AccountKeeper) SetParams(ctx sdk.Context, params types.Params) error {
 func (ak AccountKeeper) GetParams(ctx sdk.Context) (params types.Params) {
 	store := ctx.KVStore(ak.storeKey)
 	bz := store.Get(types.ParamsKey)
-	if bz == nil {
+	if len(bz) == 0 {
+		ak.legacySubspace.GetParamSetIfExists(ctx, &params)
 		return params
 	}
 	ak.cdc.MustUnmarshal(bz, &params)

@@ -112,7 +112,7 @@ func (suite *IntegrationTestSuite) initKeepersWithmAccPerms(blockedAddrs map[str
 	maccPerms[randomPerm] = []string{"random"}
 	authKeeper := authkeeper.NewAccountKeeper(
 		appCodec, suite.fetchStoreKey(types.StoreKey), authtypes.ProtoBaseAccount,
-		maccPerms, sdk.Bech32MainPrefix, authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		maccPerms, sdk.Bech32MainPrefix, authtypes.NewModuleAddress(govtypes.ModuleName).String(), paramstypes.Subspace{},
 	)
 	bankKeeper := keeper.NewBaseKeeper(
 		appCodec, suite.fetchStoreKey(types.StoreKey), authKeeper, blockedAddrs, authtypes.NewModuleAddress(govtypes.ModuleName).String(), paramstypes.Subspace{},
@@ -1108,6 +1108,7 @@ func (suite *IntegrationTestSuite) TestBalanceTrackingEvents() {
 		suite.appCodec, suite.fetchStoreKey(authtypes.StoreKey),
 		authtypes.ProtoBaseAccount, maccPerms, sdk.Bech32MainPrefix,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		paramstypes.Subspace{},
 	)
 
 	suite.bankKeeper = keeper.NewBaseKeeper(suite.appCodec, suite.fetchStoreKey(types.StoreKey),
@@ -1236,6 +1237,7 @@ func (suite *IntegrationTestSuite) TestMintCoinRestrictions() {
 		suite.appCodec, suite.fetchStoreKey(authtypes.StoreKey),
 		authtypes.ProtoBaseAccount, maccPerms, sdk.Bech32MainPrefix,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		paramstypes.Subspace{},
 	)
 	suite.accountKeeper.SetModuleAccount(suite.ctx, multiPermAcc)
 

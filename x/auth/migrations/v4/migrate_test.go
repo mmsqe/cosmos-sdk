@@ -27,6 +27,10 @@ func (ms mockSubspace) GetParamSet(ctx sdk.Context, ps exported.ParamSet) {
 	*ps.(*types.Params) = ms.ps
 }
 
+func (ms mockSubspace) GetParamSetIfExists(ctx sdk.Context, ps exported.ParamSet) {
+	*ps.(*types.Params) = ms.ps
+}
+
 func TestMigrate(t *testing.T) {
 	encCfg := moduletestutil.MakeTestEncodingConfig(auth.AppModuleBasic{})
 	cdc := encCfg.Codec

@@ -18,6 +18,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 var (
@@ -56,6 +57,7 @@ func (s *VestingAccountTestSuite) SetupTest() {
 		maccPerms,
 		"cosmos",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 }
 

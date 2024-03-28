@@ -20,6 +20,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/migrations/legacytx"
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 func TestVerifySignature(t *testing.T) {
@@ -50,6 +51,7 @@ func TestVerifySignature(t *testing.T) {
 		maccPerms,
 		"cosmos",
 		types.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	testCtx := testutil.DefaultContextWithDB(t, key, sdk.NewTransientStoreKey("transient_test"))

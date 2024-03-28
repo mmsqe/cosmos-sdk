@@ -17,6 +17,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	vestingtestutil "github.com/cosmos/cosmos-sdk/x/auth/vesting/testutil"
 	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 var (
@@ -54,6 +55,7 @@ func (s *VestingTestSuite) SetupTest() {
 		maccPerms,
 		"cosmos",
 		authtypes.NewModuleAddress("gov").String(),
+		paramstypes.Subspace{},
 	)
 
 	vestingtypes.RegisterInterfaces(encCfg.InterfaceRegistry)

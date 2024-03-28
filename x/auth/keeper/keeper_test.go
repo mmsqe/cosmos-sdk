@@ -3,11 +3,10 @@ package keeper_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/suite"
-
+	"cosmossdk.io/depinject"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"github.com/cosmos/cosmos-sdk/testutil"
@@ -16,6 +15,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
+	paramstestutil "github.com/cosmos/cosmos-sdk/x/params/testutil"
+	"github.com/stretchr/testify/suite"
 )
 
 const (
@@ -40,13 +43,27 @@ type KeeperTestSuite struct {
 	encCfg        moduletestutil.TestEncodingConfig
 }
 
+type invalid struct{}
+
+type s struct {
+	I int
+}
+
+func createTestCodec() *codec.LegacyAmino {
+	cdc := codec.NewLegacyAmino()
+	sdk.RegisterLegacyAminoCodec(cdc)
+	cdc.RegisterConcrete(s{}, "test/s", nil)
+	cdc.RegisterConcrete(invalid{}, "test/invalid", nil)
+	return cdc
+}
+
 func (suite *KeeperTestSuite) SetupTest() {
 	suite.encCfg = moduletestutil.MakeTestEncodingConfig(auth.AppModuleBasic{})
 
 	key := sdk.NewKVStoreKey(types.StoreKey)
-	testCtx := testutil.DefaultContextWithDB(suite.T(), key, sdk.NewTransientStoreKey("transient_test"))
+	tkey := sdk.NewTransientStoreKey("transient_test")
+	testCtx := testutil.DefaultContextWithDB(suite.T(), key, tkey)
 	suite.ctx = testCtx.Ctx.WithBlockHeader(tmproto.Header{})
-
 	maccPerms := map[string][]string{
 		"fee_collector":          nil,
 		"mint":                   {"minter"},
@@ -55,7 +72,14 @@ func (suite *KeeperTestSuite) SetupTest() {
 		multiPerm:                {"burner", "minter", "staking"},
 		randomPerm:               {"random"},
 	}
-
+	var cdc codec.Codec
+	if err := depinject.Inject(paramstestutil.AppConfig, &cdc); err != nil {
+		panic(err)
+	}
+	legacyAmino := createTestCodec()
+	paramsKeeper := paramskeeper.NewKeeper(cdc, legacyAmino, key, tkey)
+	paramsKeeper.Subspace(authtypes.ModuleName).WithKeyTable(authtypes.ParamKeyTable()) //nolint:staticcheck
+	authS, _ := paramsKeeper.GetSubspace(authtypes.ModuleName)
 	suite.accountKeeper = keeper.NewAccountKeeper(
 		suite.encCfg.Codec,
 		key,
@@ -63,6 +87,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 		maccPerms,
 		"cosmos",
 		types.NewModuleAddress("gov").String(),
+		authS,
 	)
 	suite.msgServer = keeper.NewMsgServerImpl(suite.accountKeeper)
 	queryHelper := baseapp.NewQueryServerTestHelper(suite.ctx, suite.encCfg.InterfaceRegistry)

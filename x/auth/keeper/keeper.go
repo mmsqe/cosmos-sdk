@@ -13,6 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/address"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/x/slashing/exported"
 )
 
 // AccountKeeperI is the interface contract that x/auth's keeper implements.
@@ -64,7 +65,8 @@ type AccountKeeper struct {
 
 	// the address capable of executing a MsgUpdateParams message. Typically, this
 	// should be the x/gov module account.
-	authority string
+	authority      string
+	legacySubspace exported.Subspace
 }
 
 var _ AccountKeeperI = &AccountKeeper{}
@@ -78,6 +80,7 @@ var _ AccountKeeperI = &AccountKeeper{}
 func NewAccountKeeper(
 	cdc codec.BinaryCodec, storeKey storetypes.StoreKey, proto func() types.AccountI,
 	maccPerms map[string][]string, bech32Prefix string, authority string,
+	legacySubspace exported.Subspace,
 ) AccountKeeper {
 	permAddrs := make(map[string]types.PermissionsForAddress)
 	for name, perms := range maccPerms {
@@ -87,12 +90,13 @@ func NewAccountKeeper(
 	bech32Codec := newBech32Codec(bech32Prefix)
 
 	return AccountKeeper{
-		storeKey:   storeKey,
-		proto:      proto,
-		cdc:        cdc,
-		permAddrs:  permAddrs,
-		addressCdc: bech32Codec,
-		authority:  authority,
+		storeKey:       storeKey,
+		proto:          proto,
+		cdc:            cdc,
+		permAddrs:      permAddrs,
+		addressCdc:     bech32Codec,
+		authority:      authority,
+		legacySubspace: legacySubspace,
 	}
 }
 
