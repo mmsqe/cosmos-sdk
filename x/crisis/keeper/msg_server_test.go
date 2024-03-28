@@ -13,6 +13,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/crisis/keeper"
 	crisistestutil "github.com/cosmos/cosmos-sdk/x/crisis/testutil"
 	"github.com/cosmos/cosmos-sdk/x/crisis/types"
+	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
+	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
 )
 
 type KeeperTestSuite struct {
@@ -31,7 +33,9 @@ func (s *KeeperTestSuite) SetupTest() {
 	key := sdk.NewKVStoreKey(types.StoreKey)
 	testCtx := testutil.DefaultContextWithDB(s.T(), key, sdk.NewTransientStoreKey("transient_test"))
 	encCfg := moduletestutil.MakeTestEncodingConfig(crisis.AppModuleBasic{})
-	keeper := keeper.NewKeeper(encCfg.Codec, key, 5, supplyKeeper, "", "")
+	tkey := sdk.NewTransientStoreKey("params_transient_test")
+	paramsKeeper := paramskeeper.NewKeeper(encCfg.Codec, encCfg.Amino, key, tkey)
+	keeper := keeper.NewKeeper(encCfg.Codec, key, 5, supplyKeeper, "", "", paramsKeeper.Subspace(crisistypes.ModuleName))
 
 	s.ctx = testCtx.Ctx
 	s.keeper = keeper

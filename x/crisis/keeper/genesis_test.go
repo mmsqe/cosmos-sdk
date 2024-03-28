@@ -14,6 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/crisis/keeper"
 	crisistestutil "github.com/cosmos/cosmos-sdk/x/crisis/testutil"
 	"github.com/cosmos/cosmos-sdk/x/crisis/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 type GenesisTestSuite struct {
@@ -40,7 +41,7 @@ func (s *GenesisTestSuite) SetupTest() {
 
 	supplyKeeper := crisistestutil.NewMockSupplyKeeper(ctrl)
 
-	s.keeper = *keeper.NewKeeper(s.cdc, key, 5, supplyKeeper, "", "")
+	s.keeper = *keeper.NewKeeper(s.cdc, key, 5, supplyKeeper, "", "", paramstypes.Subspace{})
 }
 
 func (s *GenesisTestSuite) TestImportExportGenesis() {

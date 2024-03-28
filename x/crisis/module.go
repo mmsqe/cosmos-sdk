@@ -236,6 +236,7 @@ func ProvideModule(in CrisisInputs) CrisisOutputs {
 		in.BankKeeper,
 		feeCollectorName,
 		authority.String(),
+		in.LegacySubspace,
 	)
 
 	var skipGenesisInvariants bool

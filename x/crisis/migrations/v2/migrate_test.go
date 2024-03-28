@@ -25,6 +25,8 @@ func (ms mockSubspace) Get(ctx sdk.Context, key []byte, ptr interface{}) {
 	*ptr.(*sdk.Coin) = ms.constantFee
 }
 
+func (ms mockSubspace) GetIfExists(ctx sdk.Context, key []byte, ptr interface{}) {}
+
 func TestMigrate(t *testing.T) {
 	cdc := moduletestutil.MakeTestEncodingConfig(crisis.AppModuleBasic{}).Codec
 	storeKey := sdk.NewKVStoreKey(v2.ModuleName)

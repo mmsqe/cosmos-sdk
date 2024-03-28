@@ -13,6 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/crisis/keeper"
 	crisistestutil "github.com/cosmos/cosmos-sdk/x/crisis/testutil"
 	"github.com/cosmos/cosmos-sdk/x/crisis/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 func TestLogger(t *testing.T) {
@@ -22,7 +23,7 @@ func TestLogger(t *testing.T) {
 	key := sdk.NewKVStoreKey(types.StoreKey)
 	testCtx := testutil.DefaultContextWithDB(t, key, sdk.NewTransientStoreKey("transient_test"))
 	encCfg := moduletestutil.MakeTestEncodingConfig(crisis.AppModuleBasic{})
-	keeper := keeper.NewKeeper(encCfg.Codec, key, 5, supplyKeeper, "", "")
+	keeper := keeper.NewKeeper(encCfg.Codec, key, 5, supplyKeeper, "", "", paramstypes.Subspace{})
 
 	require.Equal(t,
 		testCtx.Ctx.Logger().With("module", "x/"+types.ModuleName),
@@ -35,7 +36,7 @@ func TestInvariants(t *testing.T) {
 
 	key := sdk.NewKVStoreKey(types.StoreKey)
 	encCfg := moduletestutil.MakeTestEncodingConfig(crisis.AppModuleBasic{})
-	keeper := keeper.NewKeeper(encCfg.Codec, key, 5, supplyKeeper, "", "")
+	keeper := keeper.NewKeeper(encCfg.Codec, key, 5, supplyKeeper, "", "", paramstypes.Subspace{})
 	require.Equal(t, keeper.InvCheckPeriod(), uint(5))
 
 	orgInvRoutes := keeper.Routes()
@@ -51,7 +52,7 @@ func TestAssertInvariants(t *testing.T) {
 	key := sdk.NewKVStoreKey(types.StoreKey)
 	testCtx := testutil.DefaultContextWithDB(t, key, sdk.NewTransientStoreKey("transient_test"))
 	encCfg := moduletestutil.MakeTestEncodingConfig(crisis.AppModuleBasic{})
-	keeper := keeper.NewKeeper(encCfg.Codec, key, 5, supplyKeeper, "", "")
+	keeper := keeper.NewKeeper(encCfg.Codec, key, 5, supplyKeeper, "", "", paramstypes.Subspace{})
 
 	keeper.RegisterRoute("testModule", "testRoute1", func(sdk.Context) (string, bool) { return "", false })
 	require.NotPanics(t, func() { keeper.AssertInvariants(testCtx.Ctx) })

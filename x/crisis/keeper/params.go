@@ -10,8 +10,9 @@ import (
 func (k *Keeper) GetConstantFee(ctx sdk.Context) (constantFee sdk.Coin) {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.ConstantFeeKey)
-	if bz == nil {
-		return constantFee
+	if len(bz) == 0 {
+		k.legacySubspace.GetIfExists(ctx, types.ParamStoreKeyConstantFee, &constantFee)
+		return
 	}
 	k.cdc.MustUnmarshal(bz, &constantFee)
 	return constantFee

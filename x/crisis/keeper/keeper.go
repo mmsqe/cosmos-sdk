@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/crisis/exported"
 	"github.com/cosmos/cosmos-sdk/x/crisis/types"
 )
 
@@ -26,12 +27,14 @@ type Keeper struct {
 	supplyKeeper types.SupplyKeeper
 
 	feeCollectorName string // name of the FeeCollector ModuleAccount
+	legacySubspace   exported.Subspace
 }
 
 // NewKeeper creates a new Keeper object
 func NewKeeper(
 	cdc codec.BinaryCodec, storeKey storetypes.StoreKey, invCheckPeriod uint,
 	supplyKeeper types.SupplyKeeper, feeCollectorName string, authority string,
+	legacySubspace exported.Subspace,
 ) *Keeper {
 	return &Keeper{
 		storeKey:         storeKey,
@@ -41,6 +44,7 @@ func NewKeeper(
 		supplyKeeper:     supplyKeeper,
 		feeCollectorName: feeCollectorName,
 		authority:        authority,
+		legacySubspace:   legacySubspace,
 	}
 }
 
