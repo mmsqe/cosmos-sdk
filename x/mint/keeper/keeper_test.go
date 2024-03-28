@@ -15,6 +15,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint/keeper"
 	minttestutil "github.com/cosmos/cosmos-sdk/x/mint/testutil"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 type IntegrationTestSuite struct {
@@ -53,6 +54,7 @@ func (s *IntegrationTestSuite) SetupTest() {
 		bankKeeper,
 		authtypes.FeeCollectorName,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		paramstypes.Subspace{},
 	)
 	s.stakingKeeper = stakingKeeper
 	s.bankKeeper = bankKeeper

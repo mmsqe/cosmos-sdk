@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/mint/exported"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
 )
 
@@ -22,7 +23,8 @@ type Keeper struct {
 
 	// the address capable of executing a MsgUpdateParams message. Typically, this
 	// should be the x/gov module account.
-	authority string
+	authority      string
+	legacySubspace exported.Subspace
 }
 
 // NewKeeper creates a new mint Keeper instance
@@ -34,6 +36,7 @@ func NewKeeper(
 	bk types.BankKeeper,
 	feeCollectorName string,
 	authority string,
+	legacySubspace exported.Subspace,
 ) Keeper {
 	// ensure mint module account is set
 	if addr := ak.GetModuleAddress(types.ModuleName); addr == nil {
@@ -47,6 +50,7 @@ func NewKeeper(
 		bankKeeper:       bk,
 		feeCollectorName: feeCollectorName,
 		authority:        authority,
+		legacySubspace:   legacySubspace,
 	}
 }
 
@@ -96,7 +100,9 @@ func (k Keeper) SetParams(ctx sdk.Context, p types.Params) error {
 func (k Keeper) GetParams(ctx sdk.Context) (p types.Params) {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.ParamsKey)
-	if bz == nil {
+	if len(bz) == 0 {
+		var p types.Params
+		k.legacySubspace.GetParamSetIfExists(ctx, &p)
 		return p
 	}
 

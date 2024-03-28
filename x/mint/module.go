@@ -259,6 +259,7 @@ func ProvideModule(in MintInputs) MintOutputs {
 		in.BankKeeper,
 		feeCollectorName,
 		authority.String(),
+		in.LegacySubspace,
 	)
 
 	// when no inflation calculation function is provided it will use the default types.DefaultInflationCalculationFn
