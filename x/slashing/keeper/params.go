@@ -41,7 +41,8 @@ func (k Keeper) SlashFractionDowntime(ctx sdk.Context) (res sdk.Dec) {
 func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.ParamsKey)
-	if bz == nil {
+	if len(bz) == 0 {
+		k.legacySubspace.GetParamSetIfExists(ctx, &params)
 		return params
 	}
 	k.cdc.MustUnmarshal(bz, &params)

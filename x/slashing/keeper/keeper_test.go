@@ -16,6 +16,7 @@ import (
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	slashingtestutil "github.com/cosmos/cosmos-sdk/x/slashing/testutil"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
@@ -51,6 +52,7 @@ func (s *KeeperTestSuite) SetupTest() {
 		key,
 		s.stakingKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		paramstypes.Subspace{},
 	)
 	// set test params
 	s.slashingKeeper.SetParams(ctx, slashingtestutil.TestParams())

@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/slashing/exported"
 	"github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
@@ -22,17 +23,22 @@ type Keeper struct {
 
 	// the address capable of executing a MsgUpdateParams message. Typically, this
 	// should be the x/gov module account.
-	authority string
+	authority      string
+	legacySubspace exported.Subspace
 }
 
 // NewKeeper creates a slashing keeper
-func NewKeeper(cdc codec.BinaryCodec, legacyAmino *codec.LegacyAmino, key storetypes.StoreKey, sk types.StakingKeeper, authority string) Keeper {
+func NewKeeper(
+	cdc codec.BinaryCodec, legacyAmino *codec.LegacyAmino, key storetypes.StoreKey, sk types.StakingKeeper, authority string,
+	legacySubspace exported.Subspace,
+) Keeper {
 	return Keeper{
-		storeKey:    key,
-		cdc:         cdc,
-		legacyAmino: legacyAmino,
-		sk:          sk,
-		authority:   authority,
+		storeKey:       key,
+		cdc:            cdc,
+		legacyAmino:    legacyAmino,
+		sk:             sk,
+		authority:      authority,
+		legacySubspace: legacySubspace,
 	}
 }
 
