@@ -24,6 +24,9 @@ const (
 	// It should be synced with the mint module's name if it is ever changed.
 	// See: https://github.com/cosmos/cosmos-sdk/blob/0e34478eb7420b69869ed50f129fc274a97a9b06/x/mint/types/keys.go#L13
 	MintModuleName = "mint"
+
+	// ObjectStoreKey defines the store name for the object store
+	ObjectStoreKey = "object:" + ModuleName
 )
 
 // KVStore keys
