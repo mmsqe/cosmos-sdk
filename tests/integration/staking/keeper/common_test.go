@@ -117,7 +117,9 @@ func initFixture(tb testing.TB) *fixture {
 	)
 	encodingCfg := moduletestutil.MakeTestEncodingConfig(codectestutil.CodecOptions{}, auth.AppModule{}, staking.AppModule{})
 	cdc := encodingCfg.Codec
-
+	okeys := storetypes.NewObjectStoreKeys(
+		banktypes.ObjectStoreKey,
+	)
 	msgRouter := baseapp.NewMsgServiceRouter()
 	queryRouter := baseapp.NewGRPCQueryRouter()
 
@@ -158,6 +160,7 @@ func initFixture(tb testing.TB) *fixture {
 	bankKeeper := bankkeeper.NewBaseKeeper(
 		runtime.NewEnvironment(runtime.NewKVStoreService(keys[banktypes.StoreKey]), log.NewNopLogger()),
 		cdc,
+		okeys[banktypes.ObjectStoreKey],
 		accountKeeper,
 		blockedAddresses,
 		authority.String(),

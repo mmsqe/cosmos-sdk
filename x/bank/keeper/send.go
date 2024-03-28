@@ -9,9 +9,11 @@ import (
 	"cosmossdk.io/core/event"
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
+	storetypes "cosmossdk.io/store/types"
 	"cosmossdk.io/x/bank/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -56,8 +58,9 @@ type BaseSendKeeper struct {
 	appmodule.Environment
 	BaseViewKeeper
 
-	cdc codec.BinaryCodec
-	ak  types.AccountKeeper
+	cdc         codec.BinaryCodec
+	ak          types.AccountKeeper
+	objStoreKey storetypes.StoreKey
 
 	// list of addresses that are restricted from receiving transactions
 	blockedAddrs map[string]bool
@@ -72,6 +75,7 @@ type BaseSendKeeper struct {
 func NewBaseSendKeeper(
 	env appmodule.Environment,
 	cdc codec.BinaryCodec,
+	objStoreKey storetypes.StoreKey,
 	ak types.AccountKeeper,
 	blockedAddrs map[string]bool,
 	authority string,
@@ -84,6 +88,7 @@ func NewBaseSendKeeper(
 		Environment:     env,
 		BaseViewKeeper:  NewBaseViewKeeper(env, cdc, ak),
 		cdc:             cdc,
+		objStoreKey:     objStoreKey,
 		ak:              ak,
 		blockedAddrs:    blockedAddrs,
 		authority:       authority,
@@ -218,15 +223,26 @@ func (k BaseSendKeeper) SendCoins(ctx context.Context, fromAddr, toAddr sdk.AccA
 		return err
 	}
 
-	fromAddrString, err := k.ak.AddressCodec().BytesToString(fromAddr)
-	if err != nil {
-		return err
-	}
-	toAddrString, err := k.ak.AddressCodec().BytesToString(toAddr)
-	if err != nil {
-		return err
-	}
+	return k.emitSendCoinsEvents(ctx, fromAddr, toAddr, amt)
+}
 
+func (k BaseSendKeeper) ensureAccountCreated(ctx context.Context, toAddr sdk.AccAddress) {
+	// Create account if recipient does not exist.
+	//
+	// NOTE: This should ultimately be removed in favor a more flexible approach
+	// such as delegated fee messages.
+	accExists := k.ak.HasAccount(ctx, toAddr)
+	if !accExists {
+		defer telemetry.IncrCounter(1, "new", "account")
+		k.ak.SetAccount(ctx, k.ak.NewAccountWithAddress(ctx, toAddr))
+	}
+}
+
+// emitSendCoinsEvents emit send coins events.
+func (k BaseSendKeeper) emitSendCoinsEvents(ctx context.Context, fromAddr, toAddr sdk.AccAddress, amt sdk.Coins) error {
+	// bech32 encoding is expensive! Only do it once for fromAddr
+	fromAddrString := fromAddr.String()
+	toAddrString := toAddr.String()
 	return k.EventService.EventManager(ctx).EmitKV(
 		types.EventTypeTransfer,
 		event.NewAttribute(types.AttributeKeyRecipient, toAddrString),

@@ -73,8 +73,9 @@ func TestFundsMigration(t *testing.T) {
 	keys := storetypes.NewKVStoreKeys(
 		authtypes.StoreKey, banktypes.StoreKey, disttypes.StoreKey,
 	)
+	okeys := storetypes.NewObjectStoreKeys(banktypes.ObjectStoreKey)
 	logger := log.NewTestLogger(t)
-	cms := moduletestutil.CreateMultiStore(keys, logger)
+	cms := moduletestutil.CreateMultiStore(keys, okeys, logger)
 	encCfg := moduletestutil.MakeTestEncodingConfig(codectestutil.CodecOptions{}, auth.AppModule{}, bank.AppModule{}, distribution.AppModule{})
 	ctx := sdk.NewContext(cms, true, logger)
 	addressCodec := addresscodec.NewBech32Codec(sdk.Bech32MainPrefix)
@@ -114,6 +115,7 @@ func TestFundsMigration(t *testing.T) {
 	bankKeeper := bankkeeper.NewBaseKeeper(
 		runtime.NewEnvironment(runtime.NewKVStoreService(keys[banktypes.StoreKey]), log.NewNopLogger()),
 		encCfg.Codec,
+		okeys[banktypes.ObjectStoreKey],
 		accountKeeper,
 		map[string]bool{},
 		authority,

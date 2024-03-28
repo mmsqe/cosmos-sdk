@@ -10,9 +10,9 @@ import (
 	"cosmossdk.io/core/appmodule"
 	"cosmossdk.io/depinject"
 	"cosmossdk.io/depinject/appconfig"
+	storetypes "cosmossdk.io/store/types"
 	"cosmossdk.io/x/bank/keeper"
 	"cosmossdk.io/x/bank/types"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
@@ -82,9 +82,11 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 		panic(err)
 	}
 
+	okeys := storetypes.NewObjectStoreKeys(types.ObjectStoreKey) // mmsqe: inject ObjStoreKey
 	bankKeeper := keeper.NewBaseKeeper(
 		in.Environment,
 		in.Cdc,
+		okeys[types.ObjectStoreKey],
 		in.AccountKeeper,
 		blockedAddresses,
 		authStr,

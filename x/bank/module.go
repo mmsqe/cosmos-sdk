@@ -34,6 +34,7 @@ var (
 	_ module.AppModuleSimulation = AppModule{}
 
 	_ appmodule.AppModule             = AppModule{}
+	_ appmodule.HasEndBlocker         = AppModule{}
 	_ appmodule.HasMigrations         = AppModule{}
 	_ appmodule.HasGenesis            = AppModule{}
 	_ appmodule.HasRegisterInterfaces = AppModule{}
@@ -176,4 +177,8 @@ func (am AppModule) WeightedOperationsX(weights simsx.WeightSource, reg simsx.Re
 // It allows the indexer to decode the module's KVPairUpdate.
 func (am AppModule) ModuleCodec() (schema.ModuleCodec, error) {
 	return am.keeper.(keeper.BaseKeeper).Schema.ModuleCodec(collections.IndexingOptions{})
+}
+
+func (am AppModule) EndBlock(ctx context.Context) error {
+	return am.keeper.CreditVirtualAccounts(ctx)
 }

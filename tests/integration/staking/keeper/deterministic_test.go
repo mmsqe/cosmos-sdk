@@ -80,6 +80,7 @@ func initDeterministicFixture(t *testing.T) *deterministicFixture {
 	cdc := encodingCfg.Codec
 
 	logger := log.NewTestLogger(t)
+	okeys := storetypes.NewObjectStoreKeys(banktypes.ObjectStoreKey)
 	authority := authtypes.NewModuleAddress("gov")
 
 	maccPerms := map[string][]string{
@@ -116,6 +117,7 @@ func initDeterministicFixture(t *testing.T) *deterministicFixture {
 	bankKeeper := bankkeeper.NewBaseKeeper(
 		runtime.NewEnvironment(runtime.NewKVStoreService(keys[banktypes.StoreKey]), log.NewNopLogger()),
 		cdc,
+		okeys[banktypes.ObjectStoreKey],
 		accountKeeper,
 		blockedAddresses,
 		authority.String(),

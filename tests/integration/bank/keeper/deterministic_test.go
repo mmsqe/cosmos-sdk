@@ -68,6 +68,7 @@ type deterministicFixture struct {
 func initDeterministicFixture(t *testing.T) *deterministicFixture {
 	t.Helper()
 	keys := storetypes.NewKVStoreKeys(authtypes.StoreKey, banktypes.StoreKey)
+	okeys := storetypes.NewObjectStoreKeys(banktypes.ObjectStoreKey)
 	encodingCfg := moduletestutil.MakeTestEncodingConfig(codectestutil.CodecOptions{}, auth.AppModule{}, bank.AppModule{})
 	cdc := encodingCfg.Codec
 
@@ -105,6 +106,7 @@ func initDeterministicFixture(t *testing.T) *deterministicFixture {
 	bankKeeper := keeper.NewBaseKeeper(
 		runtime.NewEnvironment(runtime.NewKVStoreService(keys[banktypes.StoreKey]), log.NewNopLogger()),
 		cdc,
+		okeys[banktypes.ObjectStoreKey],
 		accountKeeper,
 		blockedAddresses,
 		authority.String(),

@@ -11,6 +11,7 @@ import (
 	"cosmossdk.io/log"
 	storetypes "cosmossdk.io/store/types"
 
+	banktypes "cosmossdk.io/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/testutil"
@@ -37,7 +38,8 @@ func (s *IntegrationTestSuite) SetupSuite() {
 
 	logger := log.NewNopLogger()
 	keys := storetypes.NewKVStoreKeys(countertypes.StoreKey)
-	cms := moduletestutil.CreateMultiStore(keys, logger)
+	okeys := storetypes.NewObjectStoreKeys(banktypes.ObjectStoreKey)
+	cms := moduletestutil.CreateMultiStore(keys, okeys, logger)
 	s.ctx = sdk.NewContext(cms, true, logger)
 	cfg := moduletestutil.MakeTestEncodingConfig(testutil.CodecOptions{}, counter.AppModule{})
 	s.cdc = cfg.Codec
