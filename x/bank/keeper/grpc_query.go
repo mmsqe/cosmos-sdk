@@ -2,10 +2,10 @@ package keeper
 
 import (
 	"context"
-	"slices"
 
 	"cosmossdk.io/math"
 	gogotypes "github.com/cosmos/gogoproto/types"
+	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -314,7 +314,7 @@ func (k BaseKeeper) SendEnabled(goCtx context.Context, req *types.QuerySendEnabl
 				req.Pagination = new(query.PageRequest)
 			}
 			if req.Pagination.Reverse {
-				slices.Reverse(resp.SendEnabled)
+				reverse(resp.SendEnabled)
 			}
 			if offset := req.Pagination.Offset; int(offset) <= len(resp.SendEnabled) {
 				resp.SendEnabled = resp.SendEnabled[offset:]
@@ -329,4 +329,12 @@ func (k BaseKeeper) SendEnabled(goCtx context.Context, req *types.QuerySendEnabl
 	}
 
 	return resp, nil
+}
+
+// Copied from newer version of slices package
+// https://cs.opensource.google/go/x/exp/+/master:slices/slices.go;l=511
+func reverse[S ~[]E, E any](s S) {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
 }
