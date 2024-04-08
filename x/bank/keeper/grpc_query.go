@@ -301,13 +301,13 @@ func (k BaseKeeper) SendEnabled(goCtx context.Context, req *types.QuerySendEnabl
 		var params types.Params
 		k.legacySubspace.GetParamSetIfExists(ctx, &params)
 		if len(req.Denoms) > 0 {
-			for _, sendEnabled := range params.SendEnabled {
+			for _, sendEnabled := range params.SendEnabled { //nolint:staticcheck
 				if slices.Contains(req.Denoms, sendEnabled.Denom) {
 					resp.SendEnabled = append(resp.SendEnabled, sendEnabled)
 				}
 			}
 		} else {
-			resp.SendEnabled = params.SendEnabled
+			resp.SendEnabled = params.SendEnabled //nolint:staticcheck
 			resp.Pagination = new(query.PageResponse)
 
 			if req.Pagination == nil {
@@ -323,7 +323,7 @@ func (k BaseKeeper) SendEnabled(goCtx context.Context, req *types.QuerySendEnabl
 				resp.SendEnabled = resp.SendEnabled[:limit]
 			}
 			if req.Pagination.CountTotal {
-				resp.Pagination.Total = uint64(len(params.SendEnabled))
+				resp.Pagination.Total = uint64(len(params.SendEnabled)) //nolint:staticcheck
 			}
 		}
 	}
