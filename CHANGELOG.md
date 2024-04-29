@@ -65,6 +65,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 ### Improvements
 
 * (server) [#21941](https://github.com/cosmos/cosmos-sdk/pull/21941) Regenerate addrbook.json for in place testnet.
+* (baseapp) [#20208](https://github.com/cosmos/cosmos-sdk/pull/20208) Skip running validateBasic for rechecking txs.
 
 ### Bug Fixes
 
