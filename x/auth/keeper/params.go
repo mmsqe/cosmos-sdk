@@ -25,6 +25,6 @@ func (ak AccountKeeper) GetParams(ctx sdk.Context) (params types.Params) {
 	if bz == nil {
 		return params
 	}
-	ak.cdc.MustUnmarshal(bz, &params)
+	ak.cdc.MustUnmarshal(bz[:], &params)
 	return params
 }
