@@ -229,6 +229,11 @@ func (h *DefaultProposalHandler) SetTxSelector(ts TxSelector) {
 	h.txSelector = ts
 }
 
+// SetTxVerifier sets the ProposalTxVerifier function on the DefaultProposalHandler.
+func (h *DefaultProposalHandler) SetTxVerifier(tv ProposalTxVerifier) {
+	h.txVerifier = tv
+}
+
 // PrepareProposalHandler returns the default implementation for processing an
 // ABCI proposal. The application's mempool is enumerated and all valid
 // transactions are added to the proposal. Transactions are valid if they:
