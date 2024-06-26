@@ -166,7 +166,7 @@ func fetchTxs(iterator mempool.Iterator, maxBytes int64) []sdk.Tx {
 		if numBytes += txSize; numBytes > maxBytes {
 			break
 		}
-		txs = append(txs, iterator.Tx())
+		txs = append(txs, iterator.Tx().Tx)
 		i := iterator.Next()
 		iterator = i
 	}
