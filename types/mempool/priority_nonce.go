@@ -202,16 +202,6 @@ func (mp *PriorityNonceMempool[C]) NextSenderTx(sender string) sdk.Tx {
 // Inserting a duplicate tx with a different priority overwrites the existing tx,
 // changing the total order of the mempool.
 func (mp *PriorityNonceMempool[C]) InsertWithGasWanted(ctx context.Context, tx sdk.Tx, gasWanted uint64) error {
-	mp.mtx.Lock()
-	defer mp.mtx.Unlock()
-	if mp.cfg.MaxTx > 0 && mp.priorityIndex.Len() >= mp.cfg.MaxTx {
-		return ErrMempoolTxMaxCapacity
-	} else if mp.cfg.MaxTx < 0 {
-		return nil
-	}
-
-	memTx := NewMempoolTx(tx, gasWanted)
-
 	sigs, err := mp.cfg.SignerExtractor.GetSigners(tx)
 	if err != nil {
 		return err
@@ -225,6 +215,16 @@ func (mp *PriorityNonceMempool[C]) InsertWithGasWanted(ctx context.Context, tx s
 	priority := mp.cfg.TxPriority.GetTxPriority(ctx, tx)
 	nonce := sig.Sequence
 	key := txMeta[C]{nonce: nonce, priority: priority, sender: sender}
+
+	mp.mtx.Lock()
+	defer mp.mtx.Unlock()
+	if mp.cfg.MaxTx > 0 && mp.priorityIndex.Len() >= mp.cfg.MaxTx {
+		return ErrMempoolTxMaxCapacity
+	} else if mp.cfg.MaxTx < 0 {
+		return nil
+	}
+
+	memTx := NewMempoolTx(tx, gasWanted)
 
 	senderIndex, ok := mp.senderIndices[sender]
 	if !ok {
