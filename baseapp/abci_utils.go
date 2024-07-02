@@ -302,9 +302,7 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 		if h.mempool == nil || isNoOp {
 			for i, tx := range decodedTxs {
 				var txGasLimit uint64
-				if gasTx, ok := tx.(interface {
-					GetGas() uint64
-				}); ok {
+				if gasTx, ok := tx.(mempool.GasTx); ok {
 					txGasLimit = gasTx.GetGas()
 				}
 
