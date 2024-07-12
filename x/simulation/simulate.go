@@ -230,6 +230,7 @@ func SimulateFromSeed(
 		logWriter.AddEntry(EndBlockEntry(blockHeight))
 
 		if config.Commit {
+			app.SimWriteState()
 			app.Commit()
 		}
 
