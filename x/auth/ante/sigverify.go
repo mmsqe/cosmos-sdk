@@ -31,9 +31,9 @@ var (
 	key                = make([]byte, secp256k1.PubKeySize)
 	simSecp256k1Pubkey = &secp256k1.PubKey{Key: key}
 	simSecp256k1Sig    [64]byte
-
-	SigVerificationResultCacheKey = "ante:SigVerificationResult"
 )
+
+const SigVerificationResultCacheKey = "ante:SigVerificationResult"
 
 func init() {
 	// This decodes a valid hex string into a sepc256k1Pubkey for use in transaction simulation
@@ -340,15 +340,58 @@ func (svd SigVerificationDecorator) anteHandle(ctx sdk.Context, tx sdk.Tx, simul
 	return nil
 }
 
+type gasConsumeRecord struct {
+	Amount     storetypes.Gas
+	Descriptor string
+	Consume    bool
+}
+
+type recordingGasMeter struct {
+	storetypes.GasMeter
+	GasConsumes []gasConsumeRecord
+}
+
+func (m *recordingGasMeter) ConsumeGas(amount storetypes.Gas, descriptor string) {
+	m.GasMeter.ConsumeGas(amount, descriptor)
+	m.GasConsumes = append(m.GasConsumes, gasConsumeRecord{amount, descriptor, true})
+}
+
+func (m *recordingGasMeter) RefundGas(amount storetypes.Gas, descriptor string) {
+	m.GasMeter.RefundGas(amount, descriptor)
+	m.GasConsumes = append(m.GasConsumes, gasConsumeRecord{amount, descriptor, false})
+}
+
+type sigVerifyResult struct {
+	GasRecords []gasConsumeRecord
+	Error      error
+}
+
 func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	if v, ok := ctx.GetIncarnationCache(SigVerificationResultCacheKey); ok {
 		// can't convert `nil` to interface
 		if v != nil {
-			err = v.(error)
+			result := v.(*sigVerifyResult)
+			err = result.Error
+			for _, record := range result.GasRecords {
+				if record.Consume {
+					ctx.GasMeter().ConsumeGas(record.Amount, record.Descriptor)
+				} else {
+					ctx.GasMeter().RefundGas(record.Amount, record.Descriptor)
+				}
+			}
 		}
 	} else {
+		meter := ctx.GasMeter()
+		recordingMeter := &recordingGasMeter{
+			GasMeter: meter,
+		}
+		ctx = ctx.WithGasMeter(recordingMeter)
 		err = svd.anteHandle(ctx, tx, simulate)
-		ctx.SetIncarnationCache(SigVerificationResultCacheKey, err)
+		ctx = ctx.WithGasMeter(meter)
+		ctx.SetIncarnationCache(SigVerificationResultCacheKey, &sigVerifyResult{
+			GasRecords: recordingMeter.GasConsumes,
+			Error:      err,
+		})
 	}
 	if err != nil {
 		return ctx, err
