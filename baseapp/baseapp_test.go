@@ -709,7 +709,7 @@ func TestABCI_CreateQueryContext(t *testing.T) {
 		expErr       bool
 	}{
 		{"valid height", 2, 2, true, false},
-		{"valid height with different initial height", 2, 1, true, false},
+		{"valid height with different initial height", 2, 1, true, true},
 		{"future height", 10, 10, true, true},
 		{"negative height, prove=true", -1, -1, true, true},
 		{"negative height, prove=false", -1, -1, false, true},

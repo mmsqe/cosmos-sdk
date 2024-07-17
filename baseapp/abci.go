@@ -1265,12 +1265,33 @@ func (app *BaseApp) CreateQueryContext(height int64, prove bool) (sdk.Context, e
 			)
 	}
 
-	// branch the commit multi-store for safety
-	header := app.checkState.Context().BlockHeader()
-	ctx := sdk.NewContext(cacheMS, header, true, app.logger).
+	var header *cmtproto.Header
+	for _, state := range []*state{
+		app.checkState,
+		app.prepareProposalState,
+		app.processProposalState,
+	} {
+		if state != nil {
+			// branch the commit multi-store for safety
+			h := state.Context().BlockHeader()
+			if h.Height == height || height != lastBlockHeight {
+				header = &h
+				break
+			}
+		}
+	}
+
+	if header == nil {
+		return sdk.Context{},
+			errorsmod.Wrapf(
+				sdkerrors.ErrInvalidHeight,
+				"header height in all state context is not latest height (%d)", lastBlockHeight,
+			)
+	}
+
+	ctx := sdk.NewContext(cacheMS, *header, true, app.logger).
 		WithMinGasPrices(app.minGasPrices).
 		WithGasMeter(storetypes.NewGasMeter(app.queryGasLimit)).
-		WithBlockHeader(header).
 		WithBlockHeight(height)
 
 	if height != lastBlockHeight {
