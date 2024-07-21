@@ -1268,8 +1268,7 @@ func (app *BaseApp) CreateQueryContext(height int64, prove bool) (sdk.Context, e
 	var header *cmtproto.Header
 	for _, state := range []*state{
 		app.checkState,
-		app.prepareProposalState,
-		app.processProposalState,
+		app.finalizeBlockState,
 	} {
 		if state != nil {
 			// branch the commit multi-store for safety
