@@ -680,26 +680,25 @@ func TestBaseAppPostHandler(t *testing.T) {
 	require.NotContains(t, suite.logBuffer.String(), "panic recovered in runTx")
 }
 
+type mockABCIListener struct {
+	ListenCommitFn func(context.Context, abci.ResponseCommit, []*storetypes.StoreKVPair) error
+}
+
+func (m mockABCIListener) ListenFinalizeBlock(_ context.Context, _ abci.RequestFinalizeBlock, _ abci.ResponseFinalizeBlock) error {
+	return nil
+}
+
+func (m *mockABCIListener) ListenCommit(ctx context.Context, commit abci.ResponseCommit, pairs []*storetypes.StoreKVPair) error {
+	return m.ListenCommitFn(ctx, commit, pairs)
+}
+
 // Test and ensure that invalid block heights always cause errors.
 // See issues:
 // - https://github.com/cosmos/cosmos-sdk/issues/11220
 // - https://github.com/cosmos/cosmos-sdk/issues/7662
 func TestABCI_CreateQueryContext(t *testing.T) {
 	t.Parallel()
-
-	db := dbm.NewMemDB()
-	name := t.Name()
-	app := baseapp.NewBaseApp(name, log.NewTestLogger(t), db, nil)
-
-	_, err := app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1})
-	require.NoError(t, err)
-	_, err = app.Commit()
-	require.NoError(t, err)
-
-	_, err = app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 2})
-	require.NoError(t, err)
-	_, err = app.Commit()
-	require.NoError(t, err)
+	app := getQueryBaseapp(t)
 
 	testCases := []struct {
 		name         string
@@ -732,6 +731,51 @@ func TestABCI_CreateQueryContext(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestABCI_CreateQueryContext_Before_Set_CheckState(t *testing.T) {
+	t.Parallel()
+
+	db := dbm.NewMemDB()
+	name := t.Name()
+	var height int64 = 2
+	var headerHeight int64 = 1
+
+	t.Run("valid height with different initial height", func(t *testing.T) {
+		app := baseapp.NewBaseApp(name, log.NewTestLogger(t), db, nil)
+
+		_, err := app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1})
+		require.NoError(t, err)
+		_, err = app.Commit()
+		require.NoError(t, err)
+
+		_, err = app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 2})
+		require.NoError(t, err)
+
+		var queryCtx *sdk.Context
+		var queryCtxErr error
+		app.SetStreamingManager(storetypes.StreamingManager{
+			ABCIListeners: []storetypes.ABCIListener{
+				&mockABCIListener{
+					ListenCommitFn: func(context.Context, abci.ResponseCommit, []*storetypes.StoreKVPair) error {
+						qCtx, qErr := app.CreateQueryContext(height, true)
+						queryCtx = &qCtx
+						queryCtxErr = qErr
+						return nil
+					},
+				},
+			},
+		})
+		_, err = app.Commit()
+		require.NoError(t, err)
+		require.NoError(t, queryCtxErr)
+		require.Equal(t, height, queryCtx.BlockHeight())
+
+		_, err = app.InitChain(&abci.RequestInitChain{
+			InitialHeight: headerHeight,
+		})
+		require.NoError(t, err)
+	})
 }
 
 func TestSetMinGasPrices(t *testing.T) {
