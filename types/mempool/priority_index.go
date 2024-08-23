@@ -119,7 +119,7 @@ func (i *ConcurrentSkipList[C]) CloneCounts() map[C]int {
 // GetScore retrieves the score associated with a specific nonce and sender.
 // It returns a pointer to the score if found, or nil if not found.
 // It locks the scores for reading to ensure safe access.
-func (i *ConcurrentSkipList[C]) GetScore(nonce uint64, sender string) *score[C] {
+func (i *ConcurrentSkipList[C]) GetScore(nonce uint64, sender string) *score[C] { //revive:disable:unexported-return
 	i.mutex.RLock()
 	defer i.mutex.RUnlock()
 	score, ok := i.scores[scoreKey{nonce: nonce, sender: sender}]
