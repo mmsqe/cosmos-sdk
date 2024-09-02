@@ -32,9 +32,11 @@ type Mempool interface {
 	InsertWithGasWanted(context.Context, sdk.Tx, uint64) error
 
 	// Select returns an Iterator over the app-side mempool. If txs are specified,
-	// then they shall be incorporated into the Iterator. The Iterator must
-	// closed by the caller.
+	// then they shall be incorporated into the Iterator. The Iterator is not thread-safe to use.
 	Select(context.Context, [][]byte) Iterator
+
+	// SelectBy use callback to iterate over the mempool.
+	SelectBy(context.Context, [][]byte, func(Tx) bool)
 
 	// CountTx returns the number of transactions currently in the mempool.
 	CountTx() int
