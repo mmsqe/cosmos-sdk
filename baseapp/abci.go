@@ -334,6 +334,15 @@ func (app *BaseApp) ApplySnapshotChunk(req *abci.RequestApplySnapshotChunk) (*ab
 // will contain relevant error information. Regardless of tx execution outcome,
 // the ResponseCheckTx will contain relevant gas execution context.
 func (app *BaseApp) CheckTx(req *abci.RequestCheckTx) (*abci.ResponseCheckTx, error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		if duration > time.Millisecond*10 {
+			fmt.Printf("mm-CheckTx[%s]-bf\n", startTime)
+			fmt.Printf("mm-CheckTx[%s]-af:%s\n", endTime, duration)
+		}
+	}()
 	var mode execMode
 
 	switch req.Type {
@@ -346,8 +355,8 @@ func (app *BaseApp) CheckTx(req *abci.RequestCheckTx) (*abci.ResponseCheckTx, er
 	default:
 		return nil, fmt.Errorf("unknown RequestCheckTx type: %s", req.Type)
 	}
+	gInfo, result, anteEvents, _, err := app.runTx(mode, req.Tx)
 
-	gInfo, result, anteEvents, err := app.runTx(mode, req.Tx)
 	if err != nil {
 		return sdkerrors.ResponseCheckTxWithEvents(err, gInfo.GasWanted, gInfo.GasUsed, anteEvents, app.trace), nil
 	}
@@ -375,6 +384,13 @@ func (app *BaseApp) CheckTx(req *abci.RequestCheckTx) (*abci.ResponseCheckTx, er
 // Ref: https://github.com/cosmos/cosmos-sdk/blob/main/docs/architecture/adr-060-abci-1.0.md
 // Ref: https://github.com/cometbft/cometbft/blob/main/spec/abci/abci%2B%2B_basic_concepts.md
 func (app *BaseApp) PrepareProposal(req *abci.RequestPrepareProposal) (resp *abci.ResponsePrepareProposal, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		fmt.Printf("mm-PrepareProposal[%s]-bf\n", startTime)
+		fmt.Printf("mm-PrepareProposal[%s]-af:%s\n", endTime, duration)
+	}()
 	if app.prepareProposal == nil {
 		return nil, errors.New("PrepareProposal handler not set")
 	}
@@ -453,6 +469,13 @@ func (app *BaseApp) PrepareProposal(req *abci.RequestPrepareProposal) (resp *abc
 // Ref: https://github.com/cosmos/cosmos-sdk/blob/main/docs/architecture/adr-060-abci-1.0.md
 // Ref: https://github.com/cometbft/cometbft/blob/main/spec/abci/abci%2B%2B_basic_concepts.md
 func (app *BaseApp) ProcessProposal(req *abci.RequestProcessProposal) (resp *abci.ResponseProcessProposal, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		fmt.Printf("mm-ProcessProposal[%s]-bf\n", startTime)
+		fmt.Printf("mm-ProcessProposal[%s]-af:%s\n", endTime, duration)
+	}()
 	if app.processProposal == nil {
 		return nil, errors.New("ProcessProposal handler not set")
 	}
@@ -535,7 +558,6 @@ func (app *BaseApp) ProcessProposal(req *abci.RequestProcessProposal) (resp *abc
 		req.Height > app.initialHeight {
 		app.optimisticExec.Execute(req)
 	}
-
 	return resp, nil
 }
 
@@ -549,6 +571,13 @@ func (app *BaseApp) ProcessProposal(req *abci.RequestProcessProposal) (resp *abc
 // height and are committed in the subsequent height, i.e. H+2. An error is
 // returned if vote extensions are not enabled or if extendVote fails or panics.
 func (app *BaseApp) ExtendVote(_ context.Context, req *abci.RequestExtendVote) (resp *abci.ResponseExtendVote, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		fmt.Printf("mm-ExtendVote[%s]-bf\n", startTime)
+		fmt.Printf("mm-ExtendVote[%s]-af:%s\n", endTime, duration)
+	}()
 	// Always reset state given that ExtendVote and VerifyVoteExtension can timeout
 	// and be called again in a subsequent round.
 	var ctx sdk.Context
@@ -622,6 +651,13 @@ func (app *BaseApp) ExtendVote(_ context.Context, req *abci.RequestExtendVote) (
 // phase. The response MUST be deterministic. An error is returned if vote
 // extensions are not enabled or if verifyVoteExt fails or panics.
 func (app *BaseApp) VerifyVoteExtension(req *abci.RequestVerifyVoteExtension) (resp *abci.ResponseVerifyVoteExtension, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		fmt.Printf("mm-VerifyVoteExtension[%s]-bf\n", startTime)
+		fmt.Printf("mm-VerifyVoteExtension[%s]-af:%s\n", endTime, duration)
+	}()
 	if app.verifyVoteExt == nil {
 		return nil, errors.New("application VerifyVoteExtension handler not set")
 	}
@@ -786,6 +822,10 @@ func (app *BaseApp) internalFinalizeBlock(ctx context.Context, req *abci.Request
 	//
 	// NOTE: Not all raw transactions may adhere to the sdk.Tx interface, e.g.
 	// vote extensions, so skip those.
+	fmt.Printf("mm-internalFinalizeBlock[%s]:[%s]-bf\n", time.Now(), req.Time)
+	defer func() {
+		fmt.Printf("mm-internalFinalizeBlock[%s]:[%s], height:[%d]\n", time.Now(), req.Time, req.Height)
+	}()
 	txResults, err := app.executeTxs(ctx, req.Txs)
 	if err != nil {
 		// usually due to canceled
@@ -890,6 +930,8 @@ func (app *BaseApp) executeTxs(ctx context.Context, txs [][]byte) ([]*abci.ExecT
 // extensions into the proposal, which should not themselves be executed in cases
 // where they adhere to the sdk.Tx interface.
 func (app *BaseApp) FinalizeBlock(req *abci.RequestFinalizeBlock) (res *abci.ResponseFinalizeBlock, err error) {
+	startTime := time.Now()
+	fmt.Printf("mm-FinalizeBlock[%s]:[%s], height:[%d], hash:[%X]-bf\n", startTime, req.Time, req.Height, req.Hash)
 	defer func() {
 		// call the streaming service hooks with the FinalizeBlock messages
 		for _, streamingListener := range app.streamingManager.ABCIListeners {
@@ -904,11 +946,12 @@ func (app *BaseApp) FinalizeBlock(req *abci.RequestFinalizeBlock) (res *abci.Res
 		aborted := app.optimisticExec.AbortIfNeeded(req.Hash)
 		// Wait for the OE to finish, regardless of whether it was aborted or not
 		res, err = app.optimisticExec.WaitResult()
-
+		fmt.Printf("mm-FinalizeBlock-oe[%s]:[%s], height:[%d], hash:[%X], aborted:[%v]\n", time.Now(), req.Time, req.Height, req.Hash, aborted)
 		// only return if we are not aborting
 		if !aborted {
 			if res != nil {
 				res.AppHash = app.workingHash()
+				fmt.Printf("mm-FinalizeBlock-oe-hash[%s]:[%s], height:[%d], hash:[%X], apphash:[%X]\n", time.Now(), req.Time, req.Height, req.Hash, res.AppHash)
 			}
 
 			return res, err
@@ -924,7 +967,9 @@ func (app *BaseApp) FinalizeBlock(req *abci.RequestFinalizeBlock) (res *abci.Res
 	if res != nil {
 		res.AppHash = app.workingHash()
 	}
-
+	endTime := time.Now()
+	duration := endTime.Sub(startTime)
+	fmt.Printf("mm-FinalizeBlock[%s]:[%s], height:[%d], hash:[%X], apphash:[%X]-af:%s\n", endTime, req.Time, req.Height, duration, req.Hash, res.AppHash)
 	return res, err
 }
 
@@ -954,6 +999,13 @@ func (app *BaseApp) checkHalt(height int64, time time.Time) error {
 // against that height and gracefully halt if it matches the latest committed
 // height.
 func (app *BaseApp) Commit() (*abci.ResponseCommit, error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		fmt.Printf("mm-Commit[%s]-bf\n", startTime)
+		fmt.Printf("mm-Commit[%s]-af:%s\n", endTime, duration)
+	}()
 	header := app.finalizeBlockState.Context().BlockHeader()
 	retainHeight := app.GetBlockRetentionHeight(header.Height)
 
@@ -965,9 +1017,7 @@ func (app *BaseApp) Commit() (*abci.ResponseCommit, error) {
 	if ok {
 		rms.SetCommitHeader(header)
 	}
-
 	app.cms.Commit()
-
 	resp := &abci.ResponseCommit{
 		RetainHeight: retainHeight,
 	}
@@ -1009,15 +1059,19 @@ func (app *BaseApp) Commit() (*abci.ResponseCommit, error) {
 // state transitions will be flushed to disk and as a result, but we already have
 // an application Merkle root.
 func (app *BaseApp) workingHash() []byte {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		fmt.Printf("mm-workingHash[%s]-bf\n", startTime)
+		fmt.Printf("mm-workingHash[%s]-af:%s\n", endTime, duration)
+	}()
 	// Write the FinalizeBlock state into branched storage and commit the MultiStore.
 	// The write to the FinalizeBlock state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called it persists those values.
 	app.finalizeBlockState.ms.Write()
-
 	// Get the hash of all writes in order to return the apphash to the comet in finalizeBlock.
 	commitHash := app.cms.WorkingHash()
-	app.logger.Debug("hash of all writes", "workingHash", fmt.Sprintf("%X", commitHash))
-
 	return commitHash
 }
 

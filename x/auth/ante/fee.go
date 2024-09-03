@@ -3,6 +3,7 @@ package ante
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	errorsmod "cosmossdk.io/errors"
 
@@ -39,7 +40,15 @@ func NewDeductFeeDecorator(ak AccountKeeper, bk types.BankKeeper, fk FeegrantKee
 	}
 }
 
-func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		if duration > time.Millisecond*10 {
+			fmt.Println("mm-DeductFeeDecorator-duration", duration)
+		}
+	}()
 	feeTx, ok := tx.(sdk.FeeTx)
 	if !ok {
 		return ctx, errorsmod.Wrap(sdkerrors.ErrTxDecode, "Tx must be a FeeTx")
@@ -51,7 +60,6 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 
 	var (
 		priority int64
-		err      error
 	)
 
 	fee := feeTx.GetFee()
@@ -65,7 +73,7 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 		return ctx, err
 	}
 
-	newCtx := ctx.WithPriority(priority)
+	newCtx = ctx.WithPriority(priority)
 
 	return next(newCtx, tx, simulate)
 }

@@ -6,6 +6,8 @@ import (
 	"math"
 	"sort"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -769,6 +771,7 @@ func (app *BaseApp) deliverTx(tx []byte, txIndex int) *abci.ExecTxResult {
 }
 
 func (app *BaseApp) deliverTxWithMultiStore(tx []byte, txIndex int, txMultiStore storetypes.MultiStore, incarnationCache map[string]any) *abci.ExecTxResult {
+	startTime := time.Now()
 	gInfo := sdk.GasInfo{}
 	resultStr := "successful"
 
@@ -780,8 +783,13 @@ func (app *BaseApp) deliverTxWithMultiStore(tx []byte, txIndex int, txMultiStore
 		telemetry.SetGauge(float32(gInfo.GasUsed), "tx", "gas", "used")
 		telemetry.SetGauge(float32(gInfo.GasWanted), "tx", "gas", "wanted")
 	}()
-
-	gInfo, result, anteEvents, err := app.runTxWithMultiStore(execModeFinalize, tx, txIndex, txMultiStore, incarnationCache)
+	gInfo, result, anteEvents, logs, err := app.runTxWithMultiStore(execModeFinalize, tx, txIndex, txMultiStore, incarnationCache)
+	endTime := time.Now()
+	duration := endTime.Sub(startTime)
+	if duration > time.Millisecond*10 {
+		fmt.Printf("mm-deliverTxWithMultiStore[%s]-bf\n", startTime)
+		fmt.Printf("mm-deliverTxWithMultiStore[%s]-af:%s, stack:%s\n", endTime, duration, strings.Join(logs, "\n"))
+	}
 	if err != nil {
 		resultStr = "failed"
 		resp = sdkerrors.ResponseExecTxResultWithEvents(
@@ -838,11 +846,12 @@ func (app *BaseApp) endBlock(_ context.Context) (sdk.EndBlock, error) {
 // Note, gas execution info is always returned. A reference to a Result is
 // returned if the tx does not run out of gas and if all the messages are valid
 // and execute successfully. An error is returned otherwise.
-func (app *BaseApp) runTx(mode execMode, txBytes []byte) (gInfo sdk.GasInfo, result *sdk.Result, anteEvents []abci.Event, err error) {
+func (app *BaseApp) runTx(mode execMode, txBytes []byte) (gInfo sdk.GasInfo, result *sdk.Result, anteEvents []abci.Event, logs []string, err error) {
 	return app.runTxWithMultiStore(mode, txBytes, -1, nil, nil)
 }
 
-func (app *BaseApp) runTxWithMultiStore(mode execMode, txBytes []byte, txIndex int, txMultiStore storetypes.MultiStore, incarnationCache map[string]any) (gInfo sdk.GasInfo, result *sdk.Result, anteEvents []abci.Event, err error) {
+func (app *BaseApp) runTxWithMultiStore(mode execMode, txBytes []byte, txIndex int, txMultiStore storetypes.MultiStore, incarnationCache map[string]any) (gInfo sdk.GasInfo, result *sdk.Result, anteEvents []abci.Event, logs []string, err error) {
+	logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-0, mode:%d", time.Now(), mode))
 	// NOTE: GasWanted should be returned by the AnteHandler. GasUsed is
 	// determined by the GasMeter. We need access to the context to get the gas
 	// meter, so we initialize upfront.
@@ -854,10 +863,11 @@ func (app *BaseApp) runTxWithMultiStore(mode execMode, txBytes []byte, txIndex i
 		ctx = ctx.WithMultiStore(txMultiStore)
 	}
 	ms := ctx.MultiStore()
+	logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-1", time.Now()))
 
 	// only run the tx if there is block gas remaining
 	if mode == execModeFinalize && ctx.BlockGasMeter().IsOutOfGas() {
-		return gInfo, nil, nil, errorsmod.Wrap(sdkerrors.ErrOutOfGas, "no block gas left to run tx")
+		return gInfo, nil, nil, logs, errorsmod.Wrap(sdkerrors.ErrOutOfGas, "no block gas left to run tx")
 	}
 
 	defer func() {
@@ -876,12 +886,14 @@ func (app *BaseApp) runTxWithMultiStore(mode execMode, txBytes []byte, txIndex i
 	// happen after tx processing, and must be executed even if tx processing
 	// fails. Hence, it's execution is deferred.
 	consumeBlockGas := func() {
+		logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-consumeBlockGas-bf", time.Now()))
 		if !blockGasConsumed {
 			blockGasConsumed = true
 			ctx.BlockGasMeter().ConsumeGas(
 				ctx.GasMeter().GasConsumedToLimit(), "block gas meter",
 			)
 		}
+		logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-consumeBlockGas-af", time.Now()))
 	}
 
 	// If BlockGasMeter() panics it will be caught by the above recover and will
@@ -895,19 +907,22 @@ func (app *BaseApp) runTxWithMultiStore(mode execMode, txBytes []byte, txIndex i
 	}
 
 	tx, err := app.txDecoder(txBytes)
+	logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-2", time.Now()))
 	if err != nil {
-		return sdk.GasInfo{}, nil, nil, err
+		return sdk.GasInfo{}, nil, nil, logs, err
 	}
 
 	msgs := tx.GetMsgs()
 	if err := validateBasicTxMsgs(msgs); err != nil {
-		return sdk.GasInfo{}, nil, nil, err
+		return sdk.GasInfo{}, nil, nil, logs, err
 	}
+	logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-3", time.Now()))
 
-	for _, msg := range msgs {
+	for i, msg := range msgs {
 		handler := app.msgServiceRouter.Handler(msg)
+		logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-msg-%d", time.Now(), i))
 		if handler == nil {
-			return sdk.GasInfo{}, nil, nil, errorsmod.Wrapf(sdkerrors.ErrUnknownRequest, "no message handler found for %T", msg)
+			return sdk.GasInfo{}, nil, nil, logs, errorsmod.Wrapf(sdkerrors.ErrUnknownRequest, "no message handler found for %T", msg)
 		}
 	}
 
@@ -917,6 +932,7 @@ func (app *BaseApp) runTxWithMultiStore(mode execMode, txBytes []byte, txIndex i
 			msCache storetypes.CacheMultiStore
 		)
 
+		logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-4", time.Now()))
 		// Branch context before AnteHandler call in case it aborts.
 		// This is required for both CheckTx and DeliverTx.
 		// Ref: https://github.com/cosmos/cosmos-sdk/issues/2772
@@ -928,6 +944,7 @@ func (app *BaseApp) runTxWithMultiStore(mode execMode, txBytes []byte, txIndex i
 		anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
 		newCtx, err := app.anteHandler(anteCtx, tx, mode == execModeSimulate)
 
+		logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-5:[%d], time:[%s], hash:[%X]", time.Now(), newCtx.BlockHeight(), newCtx.BlockTime(), newCtx.BlockHeader().AppHash))
 		if !newCtx.IsZero() {
 			// At this point, newCtx.MultiStore() is a store branch, or something else
 			// replaced by the AnteHandler. We want the original multistore.
@@ -947,25 +964,31 @@ func (app *BaseApp) runTxWithMultiStore(mode execMode, txBytes []byte, txIndex i
 			if mode == execModeReCheck {
 				// if the ante handler fails on recheck, we want to remove the tx from the mempool
 				if mempoolErr := app.mempool.Remove(tx); mempoolErr != nil {
-					return gInfo, nil, anteEvents, errors.Join(err, mempoolErr)
+					logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-6", time.Now()))
+					return gInfo, nil, anteEvents, logs, errors.Join(err, mempoolErr)
 				}
 			}
-			return gInfo, nil, nil, err
+			return gInfo, nil, nil, logs, err
 		}
-
+		logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-7", time.Now()))
 		msCache.Write()
 		anteEvents = events.ToABCIEvents()
+		logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-8", time.Now()))
 	}
 
 	if mode == execModeCheck {
+		logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-9", time.Now()))
 		err = app.mempool.InsertWithGasWanted(ctx, tx, gasWanted)
+		logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-10", time.Now()))
 		if err != nil {
-			return gInfo, nil, anteEvents, err
+			return gInfo, nil, anteEvents, logs, err
 		}
 	} else if mode == execModeFinalize {
+		logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-11", time.Now()))
 		err = app.mempool.Remove(tx)
+		logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-12", time.Now()))
 		if err != nil && !errors.Is(err, mempool.ErrTxNotFound) {
-			return gInfo, nil, anteEvents,
+			return gInfo, nil, anteEvents, logs,
 				fmt.Errorf("failed to remove tx from mempool: %w", err)
 		}
 	}
@@ -975,12 +998,14 @@ func (app *BaseApp) runTxWithMultiStore(mode execMode, txBytes []byte, txIndex i
 	// is a branch of a branch.
 	runMsgCtx, msCache := app.cacheTxContext(ctx, txBytes)
 
+	logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-13", time.Now()))
 	// Attempt to execute all messages and only update state if all messages pass
 	// and we're in DeliverTx. Note, runMsgs will never return a reference to a
 	// Result if any single message fails or does not have a registered Handler.
 	msgsV2, err := tx.GetMsgsV2()
 	if err == nil {
 		result, err = app.runMsgs(runMsgCtx, msgs, msgsV2, mode)
+		logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-14", time.Now()))
 	}
 
 	// Run optional postHandlers (should run regardless of the execution result).
@@ -992,9 +1017,11 @@ func (app *BaseApp) runTxWithMultiStore(mode execMode, txBytes []byte, txIndex i
 		// Note that the state is still preserved.
 		postCtx := runMsgCtx.WithEventManager(sdk.NewEventManager())
 
+		logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-15", time.Now()))
 		newCtx, errPostHandler := app.postHandler(postCtx, tx, mode == execModeSimulate, err == nil)
+		logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-16", time.Now()))
 		if errPostHandler != nil {
-			return gInfo, nil, anteEvents, errors.Join(err, errPostHandler)
+			return gInfo, nil, anteEvents, logs, errors.Join(err, errPostHandler)
 		}
 
 		// we don't want runTx to panic if runMsgs has failed earlier
@@ -1006,10 +1033,13 @@ func (app *BaseApp) runTxWithMultiStore(mode execMode, txBytes []byte, txIndex i
 
 	if err == nil {
 		if mode == execModeFinalize {
+			logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-17", time.Now()))
 			// When block gas exceeds, it'll panic and won't commit the cached store.
 			consumeBlockGas()
+			logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-18", time.Now()))
 
 			msCache.Write()
+			logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-19", time.Now()))
 		}
 
 		if len(anteEvents) > 0 && (mode == execModeFinalize || mode == execModeSimulate) {
@@ -1018,7 +1048,8 @@ func (app *BaseApp) runTxWithMultiStore(mode execMode, txBytes []byte, txIndex i
 		}
 	}
 
-	return gInfo, result, anteEvents, err
+	logs = append(logs, fmt.Sprintf("mm-runTxWithMultiStore[%s]-20", time.Now()))
+	return gInfo, result, anteEvents, logs, err
 }
 
 // runMsgs iterates through a list of messages and executes them with the provided
@@ -1136,7 +1167,7 @@ func (app *BaseApp) PrepareProposalVerifyTx(tx sdk.Tx) ([]byte, error) {
 		return nil, err
 	}
 
-	_, _, _, err = app.runTx(execModePrepareProposal, bz)
+	_, _, _, _, err = app.runTx(execModePrepareProposal, bz)
 	if err != nil {
 		return nil, err
 	}
@@ -1155,7 +1186,7 @@ func (app *BaseApp) ProcessProposalVerifyTx(txBz []byte) (sdk.Tx, uint64, error)
 		return nil, 0, err
 	}
 
-	gInfo, _, _, err := app.runTx(execModeProcessProposal, txBz)
+	gInfo, _, _, _, err := app.runTx(execModeProcessProposal, txBz)
 	if err != nil {
 		return nil, 0, err
 	}

@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+	"time"
 
 	errorsmod "cosmossdk.io/errors"
 	storetypes "cosmossdk.io/store/types"
@@ -28,6 +29,14 @@ func NewSetUpContextDecorator() SetUpContextDecorator {
 }
 
 func (sud SetUpContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		if duration > time.Millisecond*10 {
+			fmt.Println("mm-SetUpContextDecorator-duration", duration)
+		}
+	}()
 	// all transactions must implement GasTx
 	gasTx, ok := tx.(GasTx)
 	if !ok {

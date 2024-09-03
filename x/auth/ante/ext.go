@@ -1,6 +1,9 @@
 package ante
 
 import (
+	"fmt"
+	"time"
+
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -44,6 +47,14 @@ var _ sdk.AnteDecorator = RejectExtensionOptionsDecorator{}
 
 // AnteHandle implements the AnteDecorator.AnteHandle method
 func (r RejectExtensionOptionsDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		if duration > time.Millisecond*10 {
+			fmt.Println("mm-RejectExtensionOptionsDecorator-duration", duration)
+		}
+	}()
 	err = checkExtOpts(tx, r.checker)
 	if err != nil {
 		return ctx, err

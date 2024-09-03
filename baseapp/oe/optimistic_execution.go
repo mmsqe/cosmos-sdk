@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -105,11 +106,13 @@ func (oe *OptimisticExecution) Execute(req *abci.RequestProcessProposal) {
 
 	go func() {
 		start := time.Now()
+		fmt.Printf("mm-OptimisticExecution[%s]:[%s]-bf\n", start, req.Time)
 		resp, err := oe.finalizeBlockFunc(ctx, oe.request)
 
 		oe.mtx.Lock()
 
 		executionTime := time.Since(start)
+		fmt.Printf("mm-OptimisticExecution[%s]:[%s]-af:%s\n", time.Now(), req.Time, executionTime)
 		oe.logger.Debug("OE finished", "duration", executionTime.String(), "height", oe.request.Height, "hash", hex.EncodeToString(oe.request.Hash))
 		oe.response, oe.err = resp, err
 

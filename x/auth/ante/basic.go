@@ -1,6 +1,9 @@
 package ante
 
 import (
+	"fmt"
+	"time"
+
 	errorsmod "cosmossdk.io/errors"
 	storetypes "cosmossdk.io/store/types"
 
@@ -24,7 +27,15 @@ func NewValidateBasicDecorator() ValidateBasicDecorator {
 	return ValidateBasicDecorator{}
 }
 
-func (vbd ValidateBasicDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+func (vbd ValidateBasicDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		if duration > time.Millisecond*10 {
+			fmt.Println("mm-ValidateBasicDecorator-duration", duration)
+		}
+	}()
 	// no need to validate basic on recheck tx, call next antehandler
 	if ctx.IsReCheckTx() {
 		return next(ctx, tx, simulate)
@@ -52,7 +63,15 @@ func NewValidateMemoDecorator(ak AccountKeeper) ValidateMemoDecorator {
 	}
 }
 
-func (vmd ValidateMemoDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+func (vmd ValidateMemoDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		if duration > time.Millisecond*10 {
+			fmt.Println("mm-ValidateMemoDecorator-duration", duration)
+		}
+	}()
 	memoTx, ok := tx.(sdk.TxWithMemo)
 	if !ok {
 		return ctx, errorsmod.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
@@ -91,7 +110,15 @@ func NewConsumeGasForTxSizeDecorator(ak AccountKeeper) ConsumeTxSizeGasDecorator
 	}
 }
 
-func (cgts ConsumeTxSizeGasDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+func (cgts ConsumeTxSizeGasDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		if duration > time.Millisecond*10 {
+			fmt.Println("mm-ConsumeTxSizeGasDecorator-duration", duration)
+		}
+	}()
 	sigTx, ok := tx.(authsigning.SigVerifiableTx)
 	if !ok {
 		return ctx, errorsmod.Wrap(sdkerrors.ErrTxDecode, "invalid tx type")
@@ -200,7 +227,15 @@ func NewTxTimeoutHeightDecorator() TxTimeoutHeightDecorator {
 // type where the current block height is checked against the tx's height timeout.
 // If a height timeout is provided (non-zero) and is less than the current block
 // height, then an error is returned.
-func (txh TxTimeoutHeightDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+func (txh TxTimeoutHeightDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		if duration > time.Millisecond*10 {
+			fmt.Println("mm-TxTimeoutHeightDecorator-duration", duration)
+		}
+	}()
 	timeoutTx, ok := tx.(TxWithTimeoutHeight)
 	if !ok {
 		return ctx, errorsmod.Wrap(sdkerrors.ErrTxDecode, "expected tx to implement TxWithTimeoutHeight")

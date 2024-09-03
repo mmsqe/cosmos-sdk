@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"google.golang.org/protobuf/types/known/anypb"
 
@@ -58,7 +59,15 @@ func NewSetPubKeyDecorator(ak AccountKeeper) SetPubKeyDecorator {
 	}
 }
 
-func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		if duration > time.Millisecond*10 {
+			fmt.Println("mm-SetPubKeyDecorator-duration", duration)
+		}
+	}()
 	sigTx, ok := tx.(authsigning.SigVerifiableTx)
 	if !ok {
 		return ctx, errorsmod.Wrap(sdkerrors.ErrTxDecode, "invalid tx type")
@@ -162,6 +171,14 @@ func NewSigGasConsumeDecorator(ak AccountKeeper, sigGasConsumer SignatureVerific
 }
 
 func (sgcd SigGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		if duration > time.Millisecond*10 {
+			fmt.Println("mm-SigGasConsumeDecorator-duration", duration)
+		}
+	}()
 	sigTx, ok := tx.(authsigning.SigVerifiableTx)
 	if !ok {
 		return ctx, errorsmod.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
@@ -251,6 +268,14 @@ func OnlyLegacyAminoSigners(sigData signing.SignatureData) bool {
 }
 
 func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		if duration > time.Millisecond*10 {
+			fmt.Println("mm-SigVerificationDecorator-duration", duration)
+		}
+	}()
 	sigTx, ok := tx.(authsigning.Tx)
 	if !ok {
 		return ctx, errorsmod.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
@@ -358,7 +383,15 @@ func NewIncrementSequenceDecorator(ak AccountKeeper) IncrementSequenceDecorator 
 	}
 }
 
-func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		if duration > time.Millisecond*10 {
+			fmt.Println("mm-IncrementSequenceDecorator-duration", duration)
+		}
+	}()
 	sigTx, ok := tx.(authsigning.SigVerifiableTx)
 	if !ok {
 		return ctx, errorsmod.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
@@ -396,7 +429,15 @@ func NewValidateSigCountDecorator(ak AccountKeeper) ValidateSigCountDecorator {
 	}
 }
 
-func (vscd ValidateSigCountDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+func (vscd ValidateSigCountDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	startTime := time.Now()
+	defer func() {
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		if duration > time.Millisecond*10 {
+			fmt.Println("mm-ValidateSigCountDecorator-duration", duration)
+		}
+	}()
 	sigTx, ok := tx.(authsigning.SigVerifiableTx)
 	if !ok {
 		return ctx, errorsmod.Wrap(sdkerrors.ErrTxDecode, "Tx must be a sigTx")
