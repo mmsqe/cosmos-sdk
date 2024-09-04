@@ -826,7 +826,7 @@ func (app *BaseApp) internalFinalizeBlock(ctx context.Context, req *abci.Request
 	defer func() {
 		fmt.Printf("mm-internalFinalizeBlock[%s]:[%s], height:[%d]\n", time.Now(), req.Time, req.Height)
 	}()
-	txResults, err := app.executeTxs(ctx, req.Txs)
+	txResults, err := app.executeTxs(ctx, req.Txs, req.Time, req.Height)
 	if err != nil {
 		// usually due to canceled
 		return nil, err
@@ -880,11 +880,11 @@ func (app *BaseApp) internalFinalizeBlock(ctx context.Context, req *abci.Request
 	}, nil
 }
 
-func (app *BaseApp) executeTxs(ctx context.Context, txs [][]byte) ([]*abci.ExecTxResult, error) {
+func (app *BaseApp) executeTxs(ctx context.Context, txs [][]byte, t time.Time, h int64) ([]*abci.ExecTxResult, error) {
 	if app.txExecutor != nil {
 		return app.txExecutor(ctx, len(txs), app.finalizeBlockState.ms, func(i int, ms storetypes.MultiStore, incarnationCache map[string]any) *abci.ExecTxResult {
 			return app.deliverTxWithMultiStore(txs[i], i, ms, incarnationCache)
-		})
+		}, t, h)
 	}
 
 	txResults := make([]*abci.ExecTxResult, 0, len(txs))
