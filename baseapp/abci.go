@@ -3,6 +3,7 @@ package baseapp
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -24,6 +25,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 )
 
 // Supported ABCI Query prefixes and paths
@@ -882,7 +884,52 @@ func (app *BaseApp) internalFinalizeBlock(ctx context.Context, req *abci.Request
 
 func (app *BaseApp) executeTxs(ctx context.Context, txs [][]byte, t time.Time, h int64) ([]*abci.ExecTxResult, error) {
 	if app.txExecutor != nil {
+		txLocks := make(map[int]chan<- bool)
+		txDependencies := make(map[int]<-chan bool)
+		keyIndcies := make(map[string]int)
+		for i, txBytes := range txs {
+			tx, err := app.txDecoder(txBytes)
+			if err != nil {
+				panic(err)
+			}
+
+			sigTx, ok := tx.(authsigning.SigVerifiableTx)
+			if !ok {
+				panic("invalid tx type: " + fmt.Sprintf("%s/%T", reflect.TypeOf(tx).PkgPath(), tx))
+			}
+
+			signers, err := sigTx.GetSigners()
+			if err != nil {
+				panic(err)
+			}
+
+			signer := fmt.Sprintf("%X", signers[0])
+			fmt.Println("mm-signers:", i, len(signers), signer)
+
+			index, exist := keyIndcies[signer]
+			if exist {
+				fmt.Println("mm-dependency-found:", i, index)
+				ch := make(chan bool)
+				txLocks[index] = ch
+				txDependencies[i] = ch
+			}
+			keyIndcies[signer] = i
+		}
+
 		return app.txExecutor(ctx, len(txs), app.finalizeBlockState.ms, func(i int, ms storetypes.MultiStore, incarnationCache map[string]any) *abci.ExecTxResult {
+			if lockCh, exist := txLocks[i]; exist {
+				fmt.Println("mm-lock:", i)
+				defer func() {
+					fmt.Println("mm-unlock:", i)
+					lockCh <- true
+				}()
+			}
+
+			if lockCh, exist := txDependencies[i]; exist {
+				fmt.Println("mm-dependency:", i)
+				<-lockCh
+				fmt.Println("mm-dependency unlock:", i)
+			}
 			return app.deliverTxWithMultiStore(txs[i], i, ms, incarnationCache)
 		}, t, h)
 	}
