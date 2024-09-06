@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -882,10 +883,69 @@ func (app *BaseApp) internalFinalizeBlock(ctx context.Context, req *abci.Request
 	}, nil
 }
 
+type Condvar struct {
+	sync.Mutex
+	notified bool
+	cond     sync.Cond
+}
+
+func NewCondvar() *Condvar {
+	c := &Condvar{}
+	c.cond = *sync.NewCond(c)
+	return c
+}
+
+func (cv *Condvar) Wait() {
+	cv.Lock()
+	for !cv.notified {
+		cv.cond.Wait()
+	}
+	cv.Unlock()
+}
+
+func (cv *Condvar) Notify() {
+	cv.Lock()
+	cv.notified = true
+	cv.Unlock()
+	cv.cond.Signal()
+}
+
+type txLock struct {
+	mutex    sync.Mutex
+	cond     *Condvar
+	executed bool
+}
+
+func (l *txLock) Wait() {
+	l.mutex.Lock()
+	if l.executed {
+		l.mutex.Unlock()
+		return
+	}
+
+	cond := l.cond
+	if l.cond == nil {
+		l.cond = NewCondvar()
+		cond = l.cond
+	}
+	l.mutex.Unlock()
+	cond.Wait()
+}
+
+func (l *txLock) Executed() {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	l.executed = true
+	if l.cond != nil {
+		l.cond.Notify()
+		l.cond = nil
+	}
+}
+
 func (app *BaseApp) executeTxs(ctx context.Context, txs [][]byte, t time.Time, h int64) ([]*abci.ExecTxResult, error) {
 	if app.txExecutor != nil {
-		txLocks := make(map[int]chan<- bool)
-		txDependencies := make(map[int]<-chan bool)
+		txLocks := make(map[int]*txLock)
+		txDependencies := make(map[int]*txLock)
 		keyIndcies := make(map[string]int)
 		for i, txBytes := range txs {
 			tx, err := app.txDecoder(txBytes)
@@ -904,31 +964,32 @@ func (app *BaseApp) executeTxs(ctx context.Context, txs [][]byte, t time.Time, h
 			}
 
 			signer := fmt.Sprintf("%X", signers[0])
-			fmt.Println("mm-signers:", i, len(signers), signer)
+			fmt.Println("mm-executeTxs-signers:", i, len(signers), signer, t, h)
 
 			index, exist := keyIndcies[signer]
 			if exist {
-				fmt.Println("mm-dependency-found:", i, index)
-				ch := make(chan bool)
-				txLocks[index] = ch
-				txDependencies[i] = ch
+				fmt.Println("mm-executeTxs-dependency-found:", i, index, t, h)
+				lock := new(txLock)
+				txLocks[index] = lock
+				txDependencies[i] = lock
 			}
 			keyIndcies[signer] = i
 		}
 
 		return app.txExecutor(ctx, len(txs), app.finalizeBlockState.ms, func(i int, ms storetypes.MultiStore, incarnationCache map[string]any) *abci.ExecTxResult {
-			if lockCh, exist := txLocks[i]; exist {
-				fmt.Println("mm-lock:", i)
+			if lock, exist := txLocks[i]; exist {
+				fmt.Println("mm-executeTxs-lock:", i, t, h)
 				defer func() {
-					fmt.Println("mm-unlock:", i)
-					lockCh <- true
+					fmt.Println("mm-executeTxs-unlock:", i, t, h)
+					lock.Executed()
+					fmt.Println("mm-executeTxs-unlocked:", i, t, h)
 				}()
 			}
 
-			if lockCh, exist := txDependencies[i]; exist {
-				fmt.Println("mm-dependency:", i)
-				<-lockCh
-				fmt.Println("mm-dependency unlock:", i)
+			if lock, exist := txDependencies[i]; exist {
+				fmt.Println("mm-executeTxs-dependency:", i, t, h)
+				lock.Wait()
+				fmt.Println("mm-executeTxs-dependency unlocked:", i, t, h)
 			}
 			return app.deliverTxWithMultiStore(txs[i], i, ms, incarnationCache)
 		}, t, h)
