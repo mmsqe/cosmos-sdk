@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -24,6 +25,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 )
 
 // Supported ABCI Query prefixes and paths
@@ -840,9 +842,107 @@ func (app *BaseApp) internalFinalizeBlock(ctx context.Context, req *abci.Request
 	}, nil
 }
 
+type Condvar struct {
+	sync.Mutex
+	notified bool
+	cond     sync.Cond
+}
+
+func NewCondvar() *Condvar {
+	c := &Condvar{}
+	c.cond = *sync.NewCond(c)
+	return c
+}
+
+func (cv *Condvar) Wait() {
+	cv.Lock()
+	for !cv.notified {
+		cv.cond.Wait()
+	}
+	cv.Unlock()
+}
+
+func (cv *Condvar) Notify() {
+	cv.Lock()
+	cv.notified = true
+	cv.Unlock()
+	cv.cond.Signal()
+}
+
+type txLock struct {
+	mutex    sync.Mutex
+	cond     *Condvar
+	executed bool
+}
+
+func (l *txLock) Wait() {
+	l.mutex.Lock()
+	if l.executed {
+		l.mutex.Unlock()
+		return
+	}
+
+	cond := l.cond
+	if l.cond == nil {
+		l.cond = NewCondvar()
+		cond = l.cond
+	}
+	l.mutex.Unlock()
+	cond.Wait()
+}
+
+func (l *txLock) Executed() {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	l.executed = true
+	if l.cond != nil {
+		l.cond.Notify()
+		l.cond = nil
+	}
+}
+
 func (app *BaseApp) executeTxs(ctx context.Context, txs [][]byte) ([]*abci.ExecTxResult, error) {
 	if app.txExecutor != nil {
+		txLocks := make(map[int]*txLock)
+		txDependencies := make(map[int]*txLock)
+		keyIndcies := make(map[string]int)
+		for i, txBytes := range txs {
+			tx, err := app.txDecoder(txBytes)
+			if err != nil {
+				return nil, err
+			}
+
+			sigTx, ok := tx.(authsigning.SigVerifiableTx)
+			if !ok {
+				return nil, fmt.Errorf("invalid tx type: %T", tx)
+			}
+
+			signers, err := sigTx.GetSigners()
+			if err != nil {
+				return nil, err
+			}
+
+			signer := fmt.Sprintf("%X", signers[0])
+
+			index, exist := keyIndcies[signer]
+			if exist {
+				lock := new(txLock)
+				txLocks[index] = lock
+				txDependencies[i] = lock
+			}
+			keyIndcies[signer] = i
+		}
+
 		return app.txExecutor(ctx, len(txs), app.finalizeBlockState.ms, func(i int, ms storetypes.MultiStore, incarnationCache map[string]any) *abci.ExecTxResult {
+			if lock, exist := txLocks[i]; exist {
+				defer func() {
+					lock.Executed()
+				}()
+			}
+
+			if lock, exist := txDependencies[i]; exist {
+				lock.Wait()
+			}
 			return app.deliverTxWithMultiStore(txs[i], i, ms, incarnationCache)
 		})
 	}
