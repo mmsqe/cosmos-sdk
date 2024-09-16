@@ -49,6 +49,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 * [#269](https://github.com/crypto-org-chain/cosmos-sdk/pull/269) Add `StreamingManager` to baseapp to extend the abci listeners.
 * (crypto/keyring) [#20212](https://github.com/cosmos/cosmos-sdk/pull/20212) Expose the db keyring used in the keystore.
 * (baseapp) [#565](https://github.com/crypto-org-chain/cosmos-sdk/pull/565) Support incarnation cache when executed in block-stm.
+* (cli) [#21372](https://github.com/cosmos/cosmos-sdk/pull/21372) Added a `bulk-add-genesis-account` genesis command to add many genesis accounts at once.
 
 ### Improvements
 
@@ -76,7 +77,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 * (types) [#19759](https://github.com/cosmos/cosmos-sdk/pull/19759) Align SignerExtractionAdapter in PriorityNonceMempool Remove.
 * (client) [#19870](https://github.com/cosmos/cosmos-sdk/pull/19870) Add new query command `wait-tx`. Alias `event-query-tx-for` to `wait-tx` for backward compatibility.
 
-### Improvements 
+### Improvements
 
 * (telemetry) [#19903](https://github.com/cosmos/cosmos-sdk/pull/19903) Conditionally emit metrics based on enablement.
     * **Introduction of `Now` Function**: Added a new function called `Now` to the telemetry package. It returns the current system time if telemetry is enabled, or a zero time if telemetry is not enabled.
