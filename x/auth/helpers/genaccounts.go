@@ -198,7 +198,8 @@ func AddGenesisAccounts(
 		baseAccount := authtypes.NewBaseAccount(accAddr, nil, 0, 0)
 
 		vestingAmt := acc.VestingAmt
-		if !vestingAmt.IsZero() {
+		switch {
+		case !vestingAmt.IsZero():
 			vestingStart := acc.VestingStart
 			vestingEnd := acc.VestingEnd
 
@@ -218,9 +219,9 @@ func AddGenesisAccounts(
 			default:
 				return errors.New("invalid vesting parameters; must supply start and end time or end time")
 			}
-		} else if acc.ModuleName != "" {
+		case acc.ModuleName != "":
 			genAccount = authtypes.NewEmptyModuleAccount(acc.ModuleName, authtypes.Burner, authtypes.Minter)
-		} else {
+		default:
 			genAccount = baseAccount
 		}
 
