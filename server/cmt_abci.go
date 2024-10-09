@@ -4,6 +4,7 @@ import (
 	"context"
 
 	abci "github.com/cometbft/cometbft/abci/types"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 )
@@ -14,6 +15,10 @@ type cometABCIWrapper struct {
 
 func NewCometABCIWrapper(app servertypes.ABCI) abci.Application {
 	return cometABCIWrapper{app: app}
+}
+
+func (w cometABCIWrapper) Halt(ctx context.Context, em *emptypb.Empty) (*emptypb.Empty, error) {
+	return w.app.Halt(ctx, em)
 }
 
 func (w cometABCIWrapper) Info(_ context.Context, req *abci.RequestInfo) (*abci.ResponseInfo, error) {

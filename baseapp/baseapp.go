@@ -15,6 +15,7 @@ import (
 	"github.com/cosmos/gogoproto/proto"
 	"golang.org/x/exp/maps"
 	protov2 "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"cosmossdk.io/core/header"
 	errorsmod "cosmossdk.io/errors"
@@ -197,6 +198,13 @@ type BaseApp struct {
 
 	// Optional alternative tx executor, used for block-stm parallel transaction execution.
 	txExecutor TxExecutor
+}
+
+// Halt implements types.ABCI.
+func (app *BaseApp) Halt(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	err := app.Close()
+	fmt.Println("mm-halting-err", err)
+	panic("halt")
 }
 
 // NewBaseApp returns a reference to an initialized BaseApp. It accepts a

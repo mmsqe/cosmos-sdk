@@ -4,11 +4,13 @@ import (
 	"context"
 
 	abci "github.com/cometbft/cometbft/abci/types"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // ABCI is an interface that enables any finite, deterministic state machine
 // to be driven by a blockchain-based replication engine via the ABCI.
 type ABCI interface {
+	Halt(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	// Info/Query Connection
 	Info(*abci.RequestInfo) (*abci.ResponseInfo, error)                     // Return application info
 	Query(context.Context, *abci.RequestQuery) (*abci.ResponseQuery, error) // Query for state
