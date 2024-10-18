@@ -379,6 +379,14 @@ func (app *BaseApp) PrepareProposal(req *abci.RequestPrepareProposal) (resp *abc
 		return nil, errors.New("PrepareProposal handler not set")
 	}
 
+	// Abort any running OE so it cannot overlap with `PrepareProposal`. This could happen if optimistic
+	// `internalFinalizeBlock` from previous round takes a long time, but consensus has moved on to next round.
+	// Overlap is undesirable, since `internalFinalizeBlock` and `PrepareProoposal` could share access to
+	// in-memory structs depending on application implementation.
+	// No-op if OE is not enabled.
+	// Similar call to Abort() is done in `ProcessProposal`.
+	app.optimisticExec.Abort()
+
 	// Always reset state given that PrepareProposal can timeout and be called
 	// again in a subsequent round.
 	header := cmtproto.Header{
@@ -904,7 +912,7 @@ func (app *BaseApp) FinalizeBlock(req *abci.RequestFinalizeBlock) (res *abci.Res
 
 	if app.optimisticExec.Initialized() {
 		// check if the hash we got is the same as the one we are executing
-		aborted := app.optimisticExec.AbortIfNeeded(req.Hash)
+		aborted := app.optimisticExec.AbortIfNeeded(req)
 		// Wait for the OE to finish, regardless of whether it was aborted or not
 		res, err = app.optimisticExec.WaitResult()
 
