@@ -152,7 +152,7 @@ func (cms Store) writeStoresParallel(runnerCount int) error {
 		wg.Add(1)
 		sem <- struct{}{}
 
-		go func() {
+		go func(storeKey types.StoreKey, store types.CacheWrap) {
 			defer func() {
 				wg.Done()
 				<-sem // Release the slot
@@ -162,7 +162,7 @@ func (cms Store) writeStoresParallel(runnerCount int) error {
 				}
 			}()
 			store.Write()
-		}()
+		}(storeKey, store)
 	}
 
 	go func() {
