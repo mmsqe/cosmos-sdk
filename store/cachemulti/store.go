@@ -17,9 +17,6 @@ const (
 	// storeNameCtxKey is the TraceContext metadata key that identifies
 	// the store which emitted a given trace.
 	storeNameCtxKey = "store_name"
-	// maxRunners is the maximum number of concurrent goroutines that
-	// can be used to write to the underlying stores in parallel.
-	maxRunners = 4
 )
 
 //----------------------------------------
@@ -138,25 +135,21 @@ func (cms Store) Write() {
 	if cms.branched {
 		panic("cannot Write on branched store")
 	}
-	if err := cms.writeStoresParallel(maxRunners); err != nil {
+	if err := cms.writeStoresParallel(); err != nil {
 		panic(err)
 	}
 }
 
-func (cms Store) writeStoresParallel(runnerCount int) error {
-	sem := make(chan struct{}, runnerCount)      // Semaphore to limit number of concurrent goroutines
-	errChan := make(chan error, len(cms.stores)) // Channel to collect errors from goroutines
+func (cms Store) writeStoresParallel() error {
+	runnerCount := len(cms.stores)
+	errChan := make(chan error, runnerCount) // Channel to collect errors from goroutines
 	var wg sync.WaitGroup
-
 	for storeKey, store := range cms.stores {
 		wg.Add(1)
-		sem <- struct{}{}
 
 		go func(storeKey types.StoreKey, store types.CacheWrap) {
 			defer func() {
 				wg.Done()
-				<-sem // Release the slot
-
 				if r := recover(); r != nil {
 					errChan <- fmt.Errorf("panic in Write for store %s: %v", storeKey.Name(), r)
 				}
