@@ -307,7 +307,7 @@ func (c Config) ValidateBasic() error {
 			"cannot enable state sync snapshots with '%s' pruning setting", pruningtypes.PruningOptionEverything,
 		)
 	}
-	var blockExecutors = []string{BlockExecutorSequential, BlockExecutorBlockSTM}
+	blockExecutors := []string{BlockExecutorSequential, BlockExecutorBlockSTM}
 	if c.BlockSTM.Executor != "" && !strings.StringInSlice(c.BlockSTM.Executor, blockExecutors) {
 		return fmt.Errorf("invalid block executor type %s, available types: %v", c.BlockSTM.Executor, blockExecutors)
 	}
