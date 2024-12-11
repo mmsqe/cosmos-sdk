@@ -21,19 +21,7 @@ type stmMultiStoreWrapper struct {
 	types.MultiStore
 }
 
-var _ blockstm.MultiStore = stmMultiStoreWrapper{}
-
-func (ms stmMultiStoreWrapper) GetStore(key types.StoreKey) types.Store {
-	return ms.MultiStore.GetStore(key)
-}
-
-func (ms stmMultiStoreWrapper) GetKVStore(key types.StoreKey) types.KVStore {
-	return ms.MultiStore.GetKVStore(key)
-}
-
-func (ms stmMultiStoreWrapper) GetObjKVStore(key types.StoreKey) types.ObjKVStore {
-	return ms.MultiStore.GetObjKVStore(key)
-}
+var _ types.MultiStore = stmMultiStoreWrapper{}
 
 type msWrapper struct {
 	blockstm.MultiStore
@@ -43,18 +31,6 @@ var _ types.MultiStore = msWrapper{}
 
 func (ms msWrapper) getCacheWrapper(key types.StoreKey) types.CacheWrapper {
 	return ms.GetStore(key)
-}
-
-func (ms msWrapper) GetStore(key types.StoreKey) types.Store {
-	return ms.MultiStore.GetStore(key)
-}
-
-func (ms msWrapper) GetKVStore(key types.StoreKey) types.KVStore {
-	return ms.MultiStore.GetKVStore(key)
-}
-
-func (ms msWrapper) GetObjKVStore(key types.StoreKey) types.ObjKVStore {
-	return ms.MultiStore.GetObjKVStore(key)
 }
 
 func (ms msWrapper) CacheMultiStore() types.CacheMultiStore {
