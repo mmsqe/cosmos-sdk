@@ -165,3 +165,76 @@ func DefaultSTMTxExecutor(
 		return patcher.Patch(results), nil
 	}
 }
+
+func STMTxExecutor(
+	stores []types.StoreKey,
+	workers int,
+	estimate bool,
+	txDecoder sdk.TxDecoder,
+	preEstimates func(txs [][]byte, workers int, txDecoder sdk.TxDecoder, ms types.MultiStore) ([]sdk.Tx, []blockstm.MultiLocations),
+) TxExecutor {
+	index := make(map[types.StoreKey]int, len(stores))
+	for i, k := range stores {
+		index[k] = i
+	}
+	return func(
+		ctx context.Context,
+		txs [][]byte,
+		ms types.MultiStore,
+		deliverTxWithMultiStore func(int, sdk.Tx, types.MultiStore, map[string]any) *abci.ExecTxResult,
+		patcher TxResponsePatcher,
+	) ([]*abci.ExecTxResult, error) {
+		blockSize := len(txs)
+		if blockSize == 0 {
+			return nil, nil
+		}
+		results := make([]*abci.ExecTxResult, blockSize)
+		incarnationCache := make([]atomic.Pointer[map[string]any], blockSize)
+		for i := 0; i < blockSize; i++ {
+			m := make(map[string]any)
+			incarnationCache[i].Store(&m)
+		}
+
+		var (
+			estimates []blockstm.MultiLocations
+			memTxs    []sdk.Tx
+		)
+		if estimate {
+			// pre-estimation
+			memTxs, estimates = preEstimates(txs, workers, txDecoder, ms)
+		}
+
+		if err := blockstm.ExecuteBlockWithEstimates(
+			ctx,
+			blockSize,
+			index,
+			stmMultiStoreWrapper{ms},
+			workers,
+			estimates,
+			func(txn blockstm.TxnIndex, ms blockstm.MultiStore) {
+				var cache map[string]any
+
+				// only one of the concurrent incarnations gets the cache if there are any, otherwise execute without
+				// cache, concurrent incarnations should be rare.
+				v := incarnationCache[txn].Swap(nil)
+				if v != nil {
+					cache = *v
+				}
+
+				var memTx sdk.Tx
+				if memTxs != nil {
+					memTx = memTxs[txn]
+				}
+				results[txn] = deliverTxWithMultiStore(int(txn), memTx, msWrapper{ms}, cache)
+
+				if v != nil {
+					incarnationCache[txn].Store(v)
+				}
+			},
+		); err != nil {
+			return nil, err
+		}
+
+		return patcher.Patch(results), nil
+	}
+}
