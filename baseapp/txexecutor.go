@@ -84,7 +84,7 @@ func DefaultTxExecutor(_ context.Context,
 	if patcher != nil {
 		return patcher.Patch(results), nil
 	}
-	return nil, nil
+	return results, nil
 }
 
 func STMTxExecutor(
@@ -154,7 +154,9 @@ func STMTxExecutor(
 		); err != nil {
 			return nil, err
 		}
-
-		return patcher.Patch(results), nil
+		if patcher != nil {
+			return patcher.Patch(results), nil
+		}
+		return results, nil
 	}
 }
