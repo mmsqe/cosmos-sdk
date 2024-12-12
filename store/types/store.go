@@ -358,6 +358,9 @@ type CacheWrap interface {
 type CacheWrapper interface {
 	// CacheWrap branches a store.
 	CacheWrap() CacheWrap
+
+	// CacheWrapWithTrace branches a store with tracing enabled.
+	CacheWrapWithTrace(w io.Writer, tc TraceContext) CacheWrap
 }
 
 func (cid CommitID) IsZero() bool {

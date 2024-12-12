@@ -17,7 +17,6 @@ import (
 	sdkmaps "cosmossdk.io/store/internal/maps"
 	"cosmossdk.io/store/metrics"
 	pruningtypes "cosmossdk.io/store/pruning/types"
-	"cosmossdk.io/store/tracekv"
 	"cosmossdk.io/store/types"
 )
 
@@ -731,6 +730,9 @@ func TestCacheWraps(t *testing.T) {
 
 	cacheWrapper := multi.CacheWrap()
 	require.IsType(t, cachemulti.Store{}, cacheWrapper)
+
+	cacheWrappedWithTrace := multi.CacheWrapWithTrace(nil, nil)
+	require.IsType(t, cachemulti.Store{}, cacheWrappedWithTrace)
 }
 
 func TestTraceConcurrency(t *testing.T) {
@@ -748,7 +750,7 @@ func TestTraceConcurrency(t *testing.T) {
 
 	cms := multi.CacheMultiStore()
 	store1 := cms.GetKVStore(key)
-	cw := tracekv.NewStore(store1.CacheWrap().(types.KVStore), b, tc)
+	cw := store1.CacheWrapWithTrace(b, tc)
 	_ = cw
 	require.NotNil(t, store1)
 
