@@ -132,8 +132,11 @@ func (store *GStore[V]) CacheWrap() types.CacheWrap {
 }
 
 // CacheWrapWithTrace implements the CacheWrapper interface.
-func (store *Store) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.CacheWrap {
-	return NewStore(tracekv.NewStore(store, w, tc))
+func (store *GStore[V]) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.CacheWrap {
+	if store, ok := any(store).(*GStore[[]byte]); ok {
+		return NewStore(tracekv.NewStore(store, w, tc))
+	}
+	return store.CacheWrap()
 }
 
 //----------------------------------------

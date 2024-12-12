@@ -120,7 +120,7 @@ func (gs *GStore[V]) CacheWrap() types.CacheWrap {
 }
 
 // CacheWrapWithTrace implements the KVStore interface.
-func (gs *Store) CacheWrapWithTrace(_ io.Writer, _ types.TraceContext) types.CacheWrap {
+func (gs *GStore[V]) CacheWrapWithTrace(_ io.Writer, _ types.TraceContext) types.CacheWrap {
 	panic("cannot CacheWrapWithTrace a GasKVStore")
 }
 

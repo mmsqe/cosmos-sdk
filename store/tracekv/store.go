@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"cosmossdk.io/errors"
-	"cosmossdk.io/store/cachekv"
 	"cosmossdk.io/store/types"
 )
 
@@ -165,7 +164,7 @@ func (tkv *Store) GetStoreType() types.StoreType {
 // CacheWrap implements the KVStore interface. It panics because a Store
 // cannot be branched.
 func (tkv *Store) CacheWrap() types.CacheWrap {
-	return cachekv.NewStore(tkv)
+	return tkv.parent.CacheWrap()
 }
 
 // CacheWrapWithTrace implements the KVStore interface. It panics as a
