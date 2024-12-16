@@ -353,9 +353,6 @@ type CacheWrap interface {
 
 	// Discard the write set
 	Discard()
-
-	// CacheWrapWithTrace branches a store with tracing enabled.
-	CacheWrapWithTrace(w io.Writer, tc TraceContext) CacheWrap
 }
 
 type CacheWrapper interface {

@@ -161,8 +161,7 @@ func (tkv *Store) GetStoreType() types.StoreType {
 	return tkv.parent.GetStoreType()
 }
 
-// CacheWrap implements the KVStore interface. It panics because a Store
-// cannot be branched.
+// CacheWrap implements CacheWrapper.
 func (tkv *Store) CacheWrap() types.CacheWrap {
 	return tkv.parent.CacheWrap()
 }
