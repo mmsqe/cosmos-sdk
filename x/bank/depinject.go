@@ -38,6 +38,7 @@ type ModuleInputs struct {
 	Cdc          codec.Codec
 	Environment  appmodule.Environment
 	AddressCodec address.Codec
+	ObjStoreKey  *storetypes.ObjectStoreKey
 
 	AccountKeeper types.AccountKeeper
 }
@@ -83,12 +84,10 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 	if err != nil {
 		panic(err)
 	}
-
-	okeys := storetypes.NewObjectStoreKeys(types.ObjectStoreKey) // mmsqe: inject ObjStoreKey
 	bankKeeper := keeper.NewBaseKeeper(
 		in.Environment,
 		in.Cdc,
-		okeys[types.ObjectStoreKey],
+		in.ObjStoreKey,
 		in.AccountKeeper,
 		blockedAddresses,
 		authStr,
