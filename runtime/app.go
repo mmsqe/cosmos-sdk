@@ -50,9 +50,12 @@ type App struct {
 	ModuleManager      *module.Manager
 	UnorderedTxManager *unorderedtx.Manager
 
-	configurator      module.Configurator //nolint:staticcheck // SA1019: Configurator is deprecated but still used in runtime v1.
-	config            *runtimev1alpha1.Module
-	storeKeys         []storetypes.StoreKey
+	configurator module.Configurator //nolint:staticcheck // SA1019: Configurator is deprecated but still used in runtime v1.
+	config       *runtimev1alpha1.Module
+	storeKeys    []storetypes.StoreKey
+	// mmsqe
+	// tkeys map[string]*storetypes.TransientStoreKey
+	// okeys map[string]*storetypes.ObjectStoreKey
 	interfaceRegistry codectypes.InterfaceRegistry
 	cdc               codec.Codec
 	amino             registry.AminoRegistrar

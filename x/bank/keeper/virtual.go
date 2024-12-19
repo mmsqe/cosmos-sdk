@@ -78,7 +78,6 @@ func (k BaseSendKeeper) SendCoinsFromVirtual(ctx context.Context, fromAddr, toAd
 		return err
 	}
 
-	k.ensureAccountCreated(ctx, toAddr)
 	k.emitSendCoinsEvents(ctx, fromAddr, toAddr, amt)
 	return nil
 }
@@ -151,8 +150,6 @@ func (k BaseSendKeeper) CreditVirtualAccounts(ctx context.Context) error {
 			return err
 		}
 		clear(sum)
-
-		k.ensureAccountCreated(ctx, toAddr)
 		return nil
 	}
 
