@@ -8,7 +8,6 @@ import (
 	"flag"
 	"io"
 	"math/rand"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -21,7 +20,6 @@ import (
 	corestore "cosmossdk.io/core/store"
 	"cosmossdk.io/log"
 	"cosmossdk.io/store"
-	storetypes "cosmossdk.io/store/types"
 	authzkeeper "cosmossdk.io/x/authz/keeper"
 	"cosmossdk.io/x/feegrant"
 	slashingtypes "cosmossdk.io/x/slashing/types"
@@ -31,7 +29,6 @@ import (
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/cosmos/cosmos-sdk/simsx"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/x/simulation"
 	simcli "github.com/cosmos/cosmos-sdk/x/simulation/client/cli"
@@ -148,12 +145,8 @@ func TestAppSimulationAfterImport(t *testing.T) {
 			}
 		}
 		ti.Cfg.InitialBlockHeight = int(exported.Height)
-		simsx.RunWithSeed(t, ti.Cfg, NewSimApp, importGenesisStateFactory, ti.Cfg.Seed, ti.Cfg.FuzzSeed)
+		simsx.RunWithSeedAndRandAcc(t, ti.Cfg, NewSimApp, importGenesisStateFactory, ti.Cfg.Seed, ti.Cfg.FuzzSeed, simtypes.RandomAccounts)
 	})
-}
-
-func IsEmptyValidatorSetErr(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "validator set is empty after InitGenesis")
 }
 
 func TestAppStateDeterminism(t *testing.T) {
@@ -220,46 +213,7 @@ func TestAppStateDeterminism(t *testing.T) {
 		}
 	}
 	// run simulations
-	simsx.RunWithSeeds(t, interBlockCachingAppFactory, setupStateFactory, seeds, []byte{}, captureAndCheckHash)
-}
-
-type ComparableStoreApp interface {
-	LastBlockHeight() int64
-	NewContextLegacy(isCheckTx bool, header cmtproto.Header) sdk.Context
-	GetKey(storeKey string) *storetypes.KVStoreKey
-	GetStoreKeys() []storetypes.StoreKey
-}
-
-func AssertEqualStores(t testing.TB, app, newApp ComparableStoreApp, storeDecoders simtypes.StoreDecoderRegistry, skipPrefixes map[string][][]byte) {
-	ctxA := app.NewContextLegacy(true, cmtproto.Header{Height: app.LastBlockHeight()})
-	ctxB := newApp.NewContextLegacy(true, cmtproto.Header{Height: app.LastBlockHeight()})
-
-	storeKeys := app.GetStoreKeys()
-	require.NotEmpty(t, storeKeys)
-
-	for _, appKeyA := range storeKeys {
-		// only compare kvstores
-		if _, ok := appKeyA.(*storetypes.KVStoreKey); !ok {
-			continue
-		}
-
-		keyName := appKeyA.Name()
-		appKeyB := newApp.GetKey(keyName)
-
-		storeA := ctxA.KVStore(appKeyA)
-		storeB := ctxB.KVStore(appKeyB)
-
-		failedKVAs, failedKVBs := simtestutil.DiffKVStores(storeA, storeB, skipPrefixes[keyName])
-		require.Equal(t, len(failedKVAs), len(failedKVBs), "unequal sets of key-values to compare %s, key stores %s and %s", keyName, appKeyA, appKeyB)
-
-		t.Logf("compared %d different key/value pairs between %s and %s\n", len(failedKVAs), appKeyA, appKeyB)
-		if !assert.Equal(t, 0, len(failedKVAs), simtestutil.GetSimulationLog(keyName, storeDecoders, failedKVAs, failedKVBs)) {
-			for _, v := range failedKVAs {
-				t.Logf("store mismatch: %q\n", v)
-			}
-			t.FailNow()
-		}
-	}
+	simsx.RunWithSeedsAndRandAcc(t, interBlockCachingAppFactory, setupStateFactory, seeds, []byte{}, simtypes.RandomAccounts, captureAndCheckHash)
 }
 
 func FuzzFullAppSimulation(f *testing.F) {

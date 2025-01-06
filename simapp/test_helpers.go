@@ -4,11 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
+	storetypes "cosmossdk.io/store/types"
 	abci "github.com/cometbft/cometbft/api/cometbft/abci/v1"
+	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
 	cmttypes "github.com/cometbft/cometbft/types"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	corestore "cosmossdk.io/core/store"
@@ -18,6 +22,7 @@ import (
 	pruningtypes "cosmossdk.io/store/pruning/types"
 	banktypes "cosmossdk.io/x/bank/types"
 	minttypes "cosmossdk.io/x/mint/types"
+	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -256,5 +261,48 @@ func NewTestNetworkFixture() network.TestFixture {
 			TxConfig:          app.TxConfig(),
 			Amino:             app.LegacyAmino(),
 		},
+	}
+}
+
+func IsEmptyValidatorSetErr(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "validator set is empty after InitGenesis")
+}
+
+type ComparableStoreApp interface {
+	LastBlockHeight() int64
+	NewContextLegacy(isCheckTx bool, header cmtproto.Header) sdk.Context
+	GetKey(storeKey string) *storetypes.KVStoreKey
+	GetStoreKeys() []storetypes.StoreKey
+}
+
+func AssertEqualStores(t testing.TB, app, newApp ComparableStoreApp, storeDecoders simtypes.StoreDecoderRegistry, skipPrefixes map[string][][]byte) {
+	ctxA := app.NewContextLegacy(true, cmtproto.Header{Height: app.LastBlockHeight()})
+	ctxB := newApp.NewContextLegacy(true, cmtproto.Header{Height: app.LastBlockHeight()})
+
+	storeKeys := app.GetStoreKeys()
+	require.NotEmpty(t, storeKeys)
+
+	for _, appKeyA := range storeKeys {
+		// only compare kvstores
+		if _, ok := appKeyA.(*storetypes.KVStoreKey); !ok {
+			continue
+		}
+
+		keyName := appKeyA.Name()
+		appKeyB := newApp.GetKey(keyName)
+
+		storeA := ctxA.KVStore(appKeyA)
+		storeB := ctxB.KVStore(appKeyB)
+
+		failedKVAs, failedKVBs := simtestutil.DiffKVStores(storeA, storeB, skipPrefixes[keyName])
+		require.Equal(t, len(failedKVAs), len(failedKVBs), "unequal sets of key-values to compare %s, key stores %s and %s", keyName, appKeyA, appKeyB)
+
+		t.Logf("compared %d different key/value pairs between %s and %s\n", len(failedKVAs), appKeyA, appKeyB)
+		if !assert.Equal(t, 0, len(failedKVAs), simtestutil.GetSimulationLog(keyName, storeDecoders, failedKVAs, failedKVBs)) {
+			for _, v := range failedKVAs {
+				t.Logf("store mismatch: %q\n", v)
+			}
+			t.FailNow()
+		}
 	}
 }
