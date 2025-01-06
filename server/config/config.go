@@ -139,6 +139,9 @@ type GRPCConfig struct {
 	// MaxSendMsgSize defines the max message size in bytes the server can send.
 	// The default value is math.MaxInt32.
 	MaxSendMsgSize int `mapstructure:"max-send-msg-size"`
+
+	// SkipCheckHeader defines if the gRPC server should bypass check header.
+	SkipCheckHeader bool `mapstructure:"skip-check-header"`
 }
 
 // StateSyncConfig defines the state sync snapshot configuration.
