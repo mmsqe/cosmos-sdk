@@ -56,6 +56,7 @@ require (
 	gitlab.com/yawning/secp256k1-voi v0.0.0-20230925100816-f2616030848b
 	go.uber.org/mock v0.5.0
 	golang.org/x/crypto v0.31.0
+	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f
 	golang.org/x/sync v0.10.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20241015192408-796eee8c2d53
 	google.golang.org/grpc v1.69.2
@@ -164,7 +165,6 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.12.0 // indirect
-	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f // indirect
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
@@ -183,6 +183,8 @@ require (
 // replace (
 // 	<temporary replace>
 // )
+// TODO remove after all modules have their own go.mods
+replace cosmossdk.io/store => ../test/tcosmos-sdk/store
 
 // Below are the long-lived replace of the Cosmos SDK
 replace (

@@ -244,6 +244,8 @@ require (
 // replace (
 // 	<temporary replace>
 // )
+// TODO remove after all modules have their own go.mods
+replace cosmossdk.io/store => ../../test/tcosmos-sdk/store
 
 // Below are the long-lived replace of the SimApp
 replace (

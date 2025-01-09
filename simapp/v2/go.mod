@@ -251,6 +251,7 @@ require (
 // replace (
 // 	<temporary replace>
 // )
+replace cosmossdk.io/store => ../../../test/tcosmos-sdk/store
 
 // Below are the long-lived replace of the SimApp
 replace (
