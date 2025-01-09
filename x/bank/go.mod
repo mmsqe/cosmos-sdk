@@ -175,6 +175,6 @@ replace github.com/cosmos/cosmos-sdk => github.com/cosmos/cosmos-sdk v0.52.0-rc.
 
 // TODO remove post spinning out all modules
 replace (
-	cosmossdk.io/store => ../../../test/tcosmos-sdk/store
+	cosmossdk.io/store => github.com/mmsqe/cosmos-sdk/store v0.0.0-20250108013751-d0a525082217
 	cosmossdk.io/x/staking => ../staking
 )

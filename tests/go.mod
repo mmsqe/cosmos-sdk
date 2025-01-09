@@ -252,7 +252,7 @@ require (
 // SimApp on main always tests the latest extracted SDK modules importing the sdk
 replace (
 	cosmossdk.io/client/v2 => ../client/v2
-	cosmossdk.io/store => ../../test/tcosmos-sdk/store
+	cosmossdk.io/store => github.com/mmsqe/cosmos-sdk/store v0.0.0-20250108013751-d0a525082217
 	// pseudo version lower than the latest tag
 	cosmossdk.io/store/v2 => cosmossdk.io/store/v2 v2.0.0-20241108144957-78b5cd4dbd08
 	cosmossdk.io/tools/benchmark => ../tools/benchmark
