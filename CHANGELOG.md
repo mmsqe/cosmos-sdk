@@ -68,6 +68,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 * (server) [#21941](https://github.com/cosmos/cosmos-sdk/pull/21941) Regenerate addrbook.json for in place testnet.
 * (store) [#923](https://github.com/crypto-org-chain/cosmos-sdk/pull/923) Enable iavl async pruning.
 * (store) [#934](https://github.com/crypto-org-chain/cosmos-sdk/pull/934) Add pause pruning.
+* (baseapp) [#20208](https://github.com/cosmos/cosmos-sdk/pull/20208) Skip running validateBasic for rechecking txs.
 
 ### Bug Fixes
 
