@@ -184,7 +184,7 @@ require (
 // 	<temporary replace>
 // )
 // TODO remove after all modules have their own go.mods
-replace cosmossdk.io/store => github.com/mmsqe/cosmos-sdk/store v0.0.0-20250108013751-d0a525082217
+replace cosmossdk.io/store => github.com/mmsqe/cosmos-sdk/store v0.0.0-20250109074651-585074421ab9
 
 // Below are the long-lived replace of the Cosmos SDK
 replace (

@@ -688,8 +688,8 @@ github.com/mitchellh/go-testing-interface v1.14.1 h1:jrgshOhYAUVNMAJiKbEu7EqAwgJ
 github.com/mitchellh/go-testing-interface v1.14.1/go.mod h1:gfgS7OtZj6MA4U1UrDRp04twqAjfvlZyCfX3sDjEym8=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
 github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
-github.com/mmsqe/cosmos-sdk/store v0.0.0-20250108013751-d0a525082217 h1:t6sGOQaP+X36xVQ/QiXRCAdd4VuOLSEu+upk/cMlGG8=
-github.com/mmsqe/cosmos-sdk/store v0.0.0-20250108013751-d0a525082217/go.mod h1:91cEXXQ1OJ+L/P9PT93UBh+B286TNeT2KWZZQ4g8c0U=
+github.com/mmsqe/cosmos-sdk/store v0.0.0-20250109074651-585074421ab9 h1:T22BUAWKEHpFKIgJ7eScRvPp3txCMFyoSYhFPwPuoV4=
+github.com/mmsqe/cosmos-sdk/store v0.0.0-20250109074651-585074421ab9/go.mod h1:4qc/VkO77vVkmsWmHW+L4qObJ3ePgA+HOwvfUTEeaX8=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
