@@ -68,9 +68,11 @@ Ref: https://keepachangelog.com/en/1.0.0/
 * (server) [#21941](https://github.com/cosmos/cosmos-sdk/pull/21941) Regenerate addrbook.json for in place testnet.
 * (store) [#923](https://github.com/crypto-org-chain/cosmos-sdk/pull/923) Enable iavl async pruning.
 * (store) [#934](https://github.com/crypto-org-chain/cosmos-sdk/pull/934) Add pause pruning.
+* (baseapp) [#20208](https://github.com/cosmos/cosmos-sdk/pull/20208) Skip running validateBasic for rechecking txs.
 
 ### Bug Fixes
 
+* Fix [ABS-0043/ABS-0044](https://github.com/cosmos/cosmos-sdk/security/advisories/GHSA-8wcc-m6j2-qxvm) Limit recursion depth for unknown field detection and unpack any
 * (sims) [21906](https://github.com/cosmos/cosmos-sdk/pull/21906) Skip sims test when running dry on validators
 * (cli) [#21919](https://github.com/cosmos/cosmos-sdk/pull/21919) Query address-by-acc-num by account_id instead of id.
 * (cli) [#22656](https://github.com/cosmos/cosmos-sdk/pull/22656) Prune cmd should disable async pruning.
