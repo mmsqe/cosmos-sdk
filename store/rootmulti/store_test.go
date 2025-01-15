@@ -17,6 +17,7 @@ import (
 	sdkmaps "cosmossdk.io/store/internal/maps"
 	"cosmossdk.io/store/metrics"
 	pruningtypes "cosmossdk.io/store/pruning/types"
+	"cosmossdk.io/store/tracekv"
 	"cosmossdk.io/store/types"
 )
 
@@ -750,7 +751,7 @@ func TestTraceConcurrency(t *testing.T) {
 
 	cms := multi.CacheMultiStore()
 	store1 := cms.GetKVStore(key)
-	cw := store1.CacheWrapWithTrace(b, tc)
+	cw := tracekv.NewStore(store1.CacheWrap().(types.KVStore), b, tc)
 	_ = cw
 	require.NotNil(t, store1)
 
