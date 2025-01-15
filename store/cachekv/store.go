@@ -5,7 +5,6 @@ import (
 
 	"cosmossdk.io/store/cachekv/internal"
 	"cosmossdk.io/store/internal/btree"
-	"cosmossdk.io/store/tracekv"
 	"cosmossdk.io/store/types"
 )
 
@@ -133,10 +132,7 @@ func (store *GStore[V]) CacheWrap() types.CacheWrap {
 
 // CacheWrapWithTrace implements the CacheWrapper interface.
 func (store *GStore[V]) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.CacheWrap {
-	if store, ok := any(store).(*GStore[[]byte]); ok {
-		return NewStore(tracekv.NewStore(store, w, tc))
-	}
-	return store.CacheWrap()
+	panic("cannot CacheWrapWithTrace a cachekv Store")
 }
 
 //----------------------------------------
