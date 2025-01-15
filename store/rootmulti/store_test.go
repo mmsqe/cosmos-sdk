@@ -751,7 +751,7 @@ func TestTraceConcurrency(t *testing.T) {
 
 	cms := multi.CacheMultiStore()
 	store1 := cms.GetKVStore(key)
-	cw := tracekv.NewStore(store1.CacheWrap().(types.KVStore), b, tc)
+	cw := tracekv.NewStore(store1, b, tc).CacheWrap()
 	_ = cw
 	require.NotNil(t, store1)
 
