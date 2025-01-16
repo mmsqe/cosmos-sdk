@@ -30,6 +30,10 @@ func (ms multiStore) CacheWrap() storetypes.CacheWrap {
 	panic("not implemented")
 }
 
+func (ms multiStore) CacheWrapWithTrace(w io.Writer, tc storetypes.TraceContext) storetypes.CacheWrap {
+	panic("unimplemented")
+}
+
 func (ms multiStore) TracingEnabled() bool {
 	panic("not implemented")
 }
@@ -176,6 +180,10 @@ type kvStore struct {
 
 func (kv kvStore) CacheWrap() storetypes.CacheWrap {
 	panic("not implemented")
+}
+
+func (kv kvStore) CacheWrapWithTrace(w io.Writer, tc storetypes.TraceContext) storetypes.CacheWrap {
+	panic("unimplemented")
 }
 
 func (kv kvStore) GetStoreType() storetypes.StoreType {

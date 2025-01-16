@@ -162,10 +162,15 @@ func (tkv *Store) GetStoreType() types.StoreType {
 	return tkv.parent.GetStoreType()
 }
 
-// CacheWrap implements the KVStore interface. It panics because a Store
-// cannot be branched.
+// CacheWrap implements CacheWrapper.
 func (tkv *Store) CacheWrap() types.CacheWrap {
 	return cachekv.NewStore(tkv)
+}
+
+// CacheWrapWithTrace implements the KVStore interface. It panics as a
+// Store cannot be branched.
+func (tkv *Store) CacheWrapWithTrace(_ io.Writer, _ types.TraceContext) types.CacheWrap {
+	panic("cannot CacheWrapWithTrace a TraceKVStore")
 }
 
 // writeOperation writes a KVStore operation to the underlying io.Writer as
