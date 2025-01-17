@@ -1,6 +1,10 @@
 package gaskv
 
-import "cosmossdk.io/store/types"
+import (
+	"io"
+
+	"cosmossdk.io/store/types"
+)
 
 // ObjectValueLength is the emulated number of bytes for storing transient objects in gas accounting.
 const ObjectValueLength = 16
@@ -113,6 +117,11 @@ func (gs *GStore[V]) ReverseIterator(start, end []byte) types.GIterator[V] {
 // Implements KVStore.
 func (gs *GStore[V]) CacheWrap() types.CacheWrap {
 	panic("cannot CacheWrap a GasKVStore")
+}
+
+// CacheWrapWithTrace implements the KVStore interface.
+func (gs *GStore[V]) CacheWrapWithTrace(_ io.Writer, _ types.TraceContext) types.CacheWrap {
+	panic("cannot CacheWrapWithTrace a GasKVStore")
 }
 
 func (gs *GStore[V]) iterator(start, end []byte, ascending bool) types.GIterator[V] {

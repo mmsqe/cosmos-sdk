@@ -3,8 +3,10 @@ package prefix
 import (
 	"bytes"
 	"errors"
+	"io"
 
 	"cosmossdk.io/store/cachekv"
+	"cosmossdk.io/store/tracekv"
 	"cosmossdk.io/store/types"
 )
 
@@ -81,6 +83,14 @@ func (s GStore[V]) GetStoreType() types.StoreType {
 // Implements CacheWrap
 func (s GStore[V]) CacheWrap() types.CacheWrap {
 	return cachekv.NewGStore(s, s.isZero, s.valueLen)
+}
+
+// CacheWrapWithTrace implements the KVStore interface.
+func (s GStore[V]) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.CacheWrap {
+	if store, ok := any(s).(*GStore[[]byte]); ok {
+		return cachekv.NewGStore(tracekv.NewStore(store, w, tc), store.isZero, store.valueLen)
+	}
+	return s.CacheWrap()
 }
 
 // Implements KVStore
