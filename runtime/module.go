@@ -256,6 +256,7 @@ func ProvideObjKVStoreService(config *runtimev1alpha1.Module, key depinject.Modu
 	storeKey := ProvideObjectStoreKey(key, app)
 	return objectStoreService{key: storeKey}
 }
+
 func ProvideEventService() event.Service {
 	return EventService{}
 }

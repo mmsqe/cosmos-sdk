@@ -92,3 +92,38 @@ type GIterator[V any] interface {
 	// Close closes the iterator, relasing any allocated resources.
 	Close() error
 }
+
+// GBasicKVStore is a simple interface to get/set data
+type GBasicKVStore[V any] interface {
+	// Get returns nil if key doesn't exist. Panics on nil key.
+	Get(key []byte) V
+
+	// Has checks if a key exists. Panics on nil key.
+	Has(key []byte) bool
+
+	// Set sets the key. Panics on nil key or value.
+	Set(key []byte, value V)
+
+	// Delete deletes the key. Panics on nil key.
+	Delete(key []byte)
+}
+
+// GKVStore additionally provides iteration and deletion
+type GKVStore[V any] interface {
+	GBasicKVStore[V]
+
+	// Iterator over a domain of keys in ascending order. End is exclusive.
+	// Start must be less than end, or the Iterator is invalid.
+	// Iterator must be closed by caller.
+	// To iterate over entire domain, use store.Iterator(nil, nil)
+	// CONTRACT: No writes may happen within a domain while an iterator exists over it.
+	// Exceptionally allowed for cachekv.Store, safe to write in the modules.
+	Iterator(start, end []byte) GIterator[V]
+
+	// Iterator over a domain of keys in descending order. End is exclusive.
+	// Start must be less than end, or the Iterator is invalid.
+	// Iterator must be closed by caller.
+	// CONTRACT: No writes may happen within a domain while an iterator exists over it.
+	// Exceptionally allowed for cachekv.Store, safe to write in the modules.
+	ReverseIterator(start, end []byte) GIterator[V]
+}
