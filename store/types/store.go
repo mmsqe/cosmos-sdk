@@ -636,3 +636,11 @@ func NewObjectStoreKeys(names ...string) map[string]*ObjectStoreKey {
 
 	return keys
 }
+
+type AnyIterator struct {
+	GIterator[[]byte]
+}
+
+func (iter *AnyIterator) Value() any {
+	return iter.GIterator.Value()
+}

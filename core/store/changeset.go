@@ -25,7 +25,7 @@ type KVPair = struct {
 	// Key defines the key being updated.
 	Key []byte
 	// Value defines the value associated with the updated key.
-	Value []byte
+	Value any
 	// Remove is true when the key must be removed from state.
 	Remove bool
 }

@@ -180,7 +180,7 @@ func (m *Manager) Sync() error {
 			}
 
 			cs := corestore.NewChangeset(version)
-			if err := encoding.UnmarshalChangeset(cs, csBytes); err != nil {
+			if err := encoding.UnmarshalChangeset(cs, csBytes.([]byte)); err != nil {
 				return fmt.Errorf("failed to unmarshal changeset: %w", err)
 			}
 			if m.stateCommitment != nil {

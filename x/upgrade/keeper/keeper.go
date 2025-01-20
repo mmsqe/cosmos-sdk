@@ -137,7 +137,7 @@ func (k Keeper) GetModuleVersionMap(ctx context.Context) (appmodule.VersionMap, 
 		moduleBytes := it.Key()
 		// first byte is prefix key, so we remove it here
 		name := string(moduleBytes[1:])
-		moduleVersion := binary.BigEndian.Uint64(it.Value())
+		moduleVersion := binary.BigEndian.Uint64(it.Value().([]byte))
 		vm[name] = moduleVersion
 	}
 
@@ -158,7 +158,7 @@ func (k Keeper) GetModuleVersions(ctx context.Context) ([]*types.ModuleVersion, 
 	for ; it.Valid(); it.Next() {
 		moduleBytes := it.Key()
 		name := string(moduleBytes[1:])
-		moduleVersion := binary.BigEndian.Uint64(it.Value())
+		moduleVersion := binary.BigEndian.Uint64(it.Value().([]byte))
 		mv = append(mv, &types.ModuleVersion{
 			Name:    name,
 			Version: moduleVersion,
@@ -182,7 +182,7 @@ func (k Keeper) getModuleVersion(ctx context.Context, name string) (uint64, erro
 	for ; it.Valid(); it.Next() {
 		moduleName := string(it.Key()[1:])
 		if moduleName == name {
-			version := binary.BigEndian.Uint64(it.Value())
+			version := binary.BigEndian.Uint64(it.Value().([]byte))
 			return version, nil
 		}
 	}
@@ -264,7 +264,7 @@ func (k Keeper) GetUpgradedClient(ctx context.Context, height int64) ([]byte, er
 		return nil, types.ErrNoUpgradedClientFound
 	}
 
-	return bz, nil
+	return bz.([]byte), nil
 }
 
 // SetUpgradedConsensusState sets the expected upgraded consensus state for the next version of this chain
@@ -287,7 +287,7 @@ func (k Keeper) GetUpgradedConsensusState(ctx context.Context, lastHeight int64)
 		return nil, types.ErrNoUpgradedConsensusStateFound
 	}
 
-	return bz, nil
+	return bz.([]byte), nil
 }
 
 // GetLastCompletedUpgrade returns the last applied upgrade name and height.
@@ -391,7 +391,7 @@ func (k Keeper) GetUpgradePlan(ctx context.Context) (plan types.Plan, err error)
 		return plan, types.ErrNoUpgradePlanFound
 	}
 
-	err = k.cdc.Unmarshal(bz, &plan)
+	err = k.cdc.Unmarshal(bz.([]byte), &plan)
 	if err != nil {
 		return plan, err
 	}

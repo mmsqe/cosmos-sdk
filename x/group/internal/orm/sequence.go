@@ -30,7 +30,7 @@ func (s Sequence) NextVal(store storetypes.KVStore) uint64 {
 	if err != nil {
 		panic(err)
 	}
-	seq := DecodeSequence(v)
+	seq := DecodeSequence(v.([]byte))
 	seq++
 	err = pStore.Set(sequenceStorageKey, EncodeSequence(seq))
 	if err != nil {
@@ -46,7 +46,7 @@ func (s Sequence) CurVal(store storetypes.KVStore) uint64 {
 	if err != nil {
 		panic(err)
 	}
-	return DecodeSequence(v)
+	return DecodeSequence(v.([]byte))
 }
 
 // PeekNextVal returns the CurVal + increment step. Not persistent.
@@ -56,7 +56,7 @@ func (s Sequence) PeekNextVal(store storetypes.KVStore) uint64 {
 	if err != nil {
 		panic(err)
 	}
-	return DecodeSequence(v) + 1
+	return DecodeSequence(v.([]byte)) + 1
 }
 
 // InitVal sets the start value for the sequence. It must be called only once on an empty DB.

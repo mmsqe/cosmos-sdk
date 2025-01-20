@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"reflect"
 
 	errorsmod "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -55,7 +56,9 @@ func (k BaseSendKeeper) SendCoinsToVirtual(ctx context.Context, fromAddr, toAddr
 		return err
 	}
 
-	k.addVirtualCoins(ctx, toAddr, amt)
+	if err := k.addVirtualCoins(ctx, toAddr, amt); err != nil {
+		return err
+	}
 	k.emitSendCoinsEvents(ctx, fromAddr, toAddr, amt)
 	return nil
 }
@@ -82,33 +85,37 @@ func (k BaseSendKeeper) SendCoinsFromVirtual(ctx context.Context, fromAddr, toAd
 	return nil
 }
 
-func (k BaseSendKeeper) addVirtualCoins(ctx context.Context, addr sdk.AccAddress, amt sdk.Coins) {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	store := sdkCtx.ObjectStore(k.objStoreKey)
-
+func (k BaseSendKeeper) addVirtualCoins(ctx context.Context, addr sdk.AccAddress, amt sdk.Coins) error {
 	key := make([]byte, len(addr)+8)
 	copy(key, addr)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	binary.BigEndian.PutUint64(key[len(addr):], uint64(sdkCtx.TxIndex()))
 
 	var coins sdk.Coins
-	value := store.Get(key)
-	if value != nil {
+	store := k.ObjStoreService.OpenObjectStore(ctx)
+	value, err := store.Get(key)
+	if err != nil {
+		return err
+	}
+	if value != nil && !reflect.ValueOf(value).IsNil() {
 		coins = value.(sdk.Coins)
 	}
 	coins = coins.Add(amt...)
-	store.Set(key, coins)
+	return store.Set(key, coins)
 }
 
 func (k BaseSendKeeper) subVirtualCoins(ctx context.Context, addr sdk.AccAddress, amt sdk.Coins) error {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	store := sdkCtx.ObjectStore(k.objStoreKey)
-
 	key := make([]byte, len(addr)+8)
 	copy(key, addr)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	binary.BigEndian.PutUint64(key[len(addr):], uint64(sdkCtx.TxIndex()))
 
-	value := store.Get(key)
-	if value == nil {
+	store := k.ObjStoreService.OpenObjectStore(ctx)
+	value, err := store.Get(key)
+	if err != nil {
+		return err
+	}
+	if value == nil || reflect.ValueOf(value).IsNil() {
 		return errorsmod.Wrapf(
 			sdkerrors.ErrInsufficientFunds,
 			"spendable balance 0 is smaller than %s",
@@ -136,7 +143,7 @@ func (k BaseSendKeeper) subVirtualCoins(ctx context.Context, addr sdk.AccAddress
 // CreditVirtualAccounts sum up the transient coins and add them to the real account,
 // should be called at end blocker.
 func (k BaseSendKeeper) CreditVirtualAccounts(ctx context.Context) error {
-	store := sdk.UnwrapSDKContext(ctx).ObjectStore(k.objStoreKey)
+	store := k.ObjStoreService.OpenObjectStore(ctx)
 
 	var toAddr sdk.AccAddress
 	sum := sdk.NewMapCoins(nil)
@@ -153,7 +160,10 @@ func (k BaseSendKeeper) CreditVirtualAccounts(ctx context.Context) error {
 		return nil
 	}
 
-	it := store.Iterator(nil, nil)
+	it, err := store.Iterator(nil, nil)
+	if err != nil {
+		return err
+	}
 	defer it.Close()
 	for ; it.Valid(); it.Next() {
 		if len(it.Key()) <= 8 {

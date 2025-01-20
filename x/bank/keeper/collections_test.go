@@ -33,7 +33,6 @@ func TestBankStateCompatibility(t *testing.T) {
 
 	env := runtime.NewEnvironment(runtime.NewKVStoreService(key), coretesting.NewNopLogger())
 	ac := codectestutil.CodecOptions{}.GetAddressCodec()
-
 	// gomock initializations
 	ctrl := gomock.NewController(t)
 	authKeeper := banktestutil.NewMockAccountKeeper(ctrl)
@@ -47,7 +46,6 @@ func TestBankStateCompatibility(t *testing.T) {
 	k := keeper.NewBaseKeeper(
 		env,
 		encCfg.Codec,
-		okey,
 		authKeeper,
 		map[string]bool{addr: true},
 		authority,

@@ -432,7 +432,7 @@ func (s *Store) MigrateFromV1(db corestore.KVStore) error {
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(s.pathMetadata(height, format), itr.Value(), 0o600); err != nil {
+		if err := os.WriteFile(s.pathMetadata(height, format), itr.Value().([]byte), 0o600); err != nil {
 			return errors.Wrapf(err, "failed to write snapshot metadata %q", s.pathMetadata(height, format))
 		}
 	}

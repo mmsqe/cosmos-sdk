@@ -38,8 +38,8 @@ func NewTree(
 	return &Tree{tree: tree, log: log, path: dbOptions.Path}, nil
 }
 
-func (t *Tree) Set(key, value []byte) error {
-	_, err := t.tree.Set(key, value)
+func (t *Tree) Set(key []byte, value any) error {
+	_, err := t.tree.Set(key, value.([]byte))
 	return err
 }
 

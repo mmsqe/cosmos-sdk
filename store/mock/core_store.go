@@ -338,10 +338,10 @@ func (mr *MockKVStoreWithBatchMockRecorder) Delete(key any) *gomock.Call {
 }
 
 // Get mocks base method.
-func (m *MockKVStoreWithBatch) Get(key []byte) ([]byte, error) {
+func (m *MockKVStoreWithBatch) Get(key []byte) (any, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", key)
-	ret0, _ := ret[0].([]byte)
+	ret0, _ := ret[0].(any)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -426,7 +426,7 @@ func (mr *MockKVStoreWithBatchMockRecorder) ReverseIterator(start, end any) *gom
 }
 
 // Set mocks base method.
-func (m *MockKVStoreWithBatch) Set(key, value []byte) error {
+func (m *MockKVStoreWithBatch) Set(key  []byte, value any) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Set", key, value)
 	ret0, _ := ret[0].(error)

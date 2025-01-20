@@ -181,10 +181,10 @@ func ProvideKVService(
 	key depinject.ModuleKey,
 	kvFactory store.KVStoreServiceFactory,
 	storeBuilder root.Builder,
-) (store.KVStoreService, store.MemoryStoreService) {
+) (store.KVStoreService, store.MemoryStoreService, store.ObjectStoreService) {
 	// skips modules that have no store
 	if slices.Contains(config.SkipStoreKeys, key.Name()) {
-		return &failingStoreService{}, &failingStoreService{}
+		return &failingStoreService{}, &failingStoreService{}, &failingStoreService{}
 	}
 	var kvStoreKey string
 	override := storeKeyOverride(config, key.Name())
@@ -195,7 +195,7 @@ func ProvideKVService(
 	}
 
 	storeBuilder.RegisterKey(kvStoreKey)
-	return kvFactory([]byte(kvStoreKey)), stf.NewMemoryStoreService([]byte(fmt.Sprintf("memory:%s", kvStoreKey)))
+	return kvFactory([]byte(kvStoreKey)), stf.NewMemoryStoreService([]byte(fmt.Sprintf("memory:%s", kvStoreKey))), stf.NewObjectStoreService([]byte(fmt.Sprintf("obj:%s", kvStoreKey)))
 }
 
 func storeKeyOverride(config *runtimev2.Module, moduleName string) *runtimev2.StoreKeyConfig {
@@ -213,6 +213,7 @@ func ProvideEnvironment(
 	key depinject.ModuleKey,
 	kvService store.KVStoreService,
 	memKvService store.MemoryStoreService,
+	objService store.ObjectStoreService,
 	headerService header.Service,
 	gasService gas.Service,
 	eventService event.Service,
@@ -230,6 +231,7 @@ func ProvideEnvironment(
 		TransactionService: services.NewContextAwareTransactionService(),
 		KVStoreService:     kvService,
 		MemStoreService:    memKvService,
+		ObjStoreService:    objService,
 	}
 }
 

@@ -1170,7 +1170,7 @@ func (rs *Store) GetCommitInfo(ver int64) (*types.CommitInfo, error) {
 	}
 
 	cInfo := &types.CommitInfo{}
-	if err = cInfo.Unmarshal(bz); err != nil {
+	if err = cInfo.Unmarshal(bz.([]byte)); err != nil {
 		return nil, errorsmod.Wrap(err, "failed unmarshal commit info")
 	}
 
@@ -1226,7 +1226,7 @@ func GetLatestVersion(db corestore.KVStoreWithBatch) int64 {
 
 	var latestVersion int64
 
-	if err := gogotypes.StdInt64Unmarshal(&latestVersion, bz); err != nil {
+	if err := gogotypes.StdInt64Unmarshal(&latestVersion, bz.([]byte)); err != nil {
 		panic(err)
 	}
 

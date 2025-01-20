@@ -45,7 +45,7 @@ func (s Store) key(key []byte) (res []byte) {
 }
 
 // Implements KVStore
-func (s Store) Get(key []byte) ([]byte, error) {
+func (s Store) Get(key []byte) (any, error) {
 	return s.parent.Get(s.key(key))
 }
 
@@ -55,7 +55,7 @@ func (s Store) Has(key []byte) (bool, error) {
 }
 
 // Implements KVStore
-func (s Store) Set(key, value []byte) error {
+func (s Store) Set(key []byte, value any) error {
 	return s.parent.Set(s.key(key), value)
 }
 
@@ -157,7 +157,7 @@ func (pi *prefixIterator) Key() (key []byte) {
 }
 
 // Implements Iterator
-func (pi *prefixIterator) Value() []byte {
+func (pi *prefixIterator) Value() any {
 	if !pi.valid {
 		panic("prefixIterator invalid, cannot call Value()")
 	}

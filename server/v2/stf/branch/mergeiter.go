@@ -19,7 +19,7 @@ type mergedIterator[Parent, Child corestore.Iterator] struct {
 	ascending bool   // Direction of iteration
 	valid     bool   // Indicates if the iterator is in a valid state
 	currKey   []byte // Current key pointed by the iterator
-	currValue []byte // Current value corresponding to currKey
+	currValue any    // Current value corresponding to currKey
 	err       error  // Error encountered during iteration
 }
 
@@ -71,7 +71,7 @@ func (i *mergedIterator[Parent, Child]) Key() []byte {
 
 // Value returns the current value corresponding to the current key.
 // If the iterator is invalid, it returns nil.
-func (i *mergedIterator[Parent, Child]) Value() []byte {
+func (i *mergedIterator[Parent, Child]) Value() any {
 	if !i.valid {
 		panic("called value on invalid iterator")
 	}
@@ -103,7 +103,8 @@ func (i *mergedIterator[Parent, Child]) advance() {
 			return
 		}
 
-		var key, value []byte
+		var key []byte
+		var value any
 
 		// If parent iterator is exhausted, use the child iterator
 		if !i.parent.Valid() {

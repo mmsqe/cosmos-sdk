@@ -39,7 +39,7 @@ func (m *MetadataStore) GetLatestVersion() (uint64, error) {
 		return 0, nil
 	}
 
-	version, _, err := encoding.DecodeUvarint(value)
+	version, _, err := encoding.DecodeUvarint(value.([]byte))
 	if err != nil {
 		return 0, err
 	}
@@ -68,7 +68,7 @@ func (m *MetadataStore) GetCommitInfo(version uint64) (*proof.CommitInfo, error)
 	}
 
 	cInfo := &proof.CommitInfo{}
-	if err := cInfo.Unmarshal(value); err != nil {
+	if err := cInfo.Unmarshal(value.([]byte)); err != nil {
 		return nil, err
 	}
 

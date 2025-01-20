@@ -193,7 +193,7 @@ func RunWithSeedAndRandAcc[T SimulationApp](
 	err = simtestutil.CheckExportSimulation(app, tCfg, simParams)
 	require.NoError(tb, err)
 	if tCfg.Commit && tCfg.DBBackend == "goleveldb" {
-		simtestutil.PrintStats(testInstance.DB.(*dbm.GoLevelDB), tb.Log)
+		// simtestutil.PrintStats(testInstance.DB.(*dbm.GoLevelDB), tb.Log) mmsqe
 	}
 	// not using tb.Log to always print the summary
 	fmt.Printf("+++ DONE (seed: %d): \n%s\n", seed, reporter.Summary().String())
@@ -321,6 +321,42 @@ func prepareWeightedOps(
 	return append(wOps, oReg.ToLegacyObjects()...), reporter
 }
 
+type anyIterator struct {
+	dbm.Iterator
+}
+
+func (it *anyIterator) Value() any {
+	return it.Iterator.Value()
+}
+
+type AnyKVStore struct {
+	dbm.DB
+}
+
+func (db *AnyKVStore) Get(key []byte) (any, error) {
+	return db.DB.Get(key)
+}
+
+func (db *AnyKVStore) Set(key []byte, value any) error {
+	return db.DB.Set(key, value.([]byte))
+}
+
+func (db *AnyKVStore) Iterator(start, end []byte) (corestore.Iterator, error) {
+	iter, err := db.DB.Iterator(start, end)
+	if err != nil {
+		return nil, err
+	}
+	return &anyIterator{iter}, nil
+}
+
+func (db *AnyKVStore) ReverseIterator(start, end []byte) (corestore.Iterator, error) {
+	iter, err := db.DB.ReverseIterator(start, end)
+	if err != nil {
+		return nil, err
+	}
+	return &anyIterator{iter}, nil
+}
+
 // NewSimulationAppInstance initializes and returns a TestInstance of a SimulationApp.
 // The function takes a testing.T instance, a simtypes.Config instance, and an appFactory function as parameters.
 // It creates a temporary working directory and a LevelDB database for the simulation app.
@@ -354,13 +390,14 @@ func NewSimulationAppInstance[T SimulationApp](
 	if tCfg.FauxMerkle {
 		opts = append(opts, FauxMerkleModeOpt)
 	}
-	app := appFactory(logger, db, nil, true, appOptions, opts...)
+	anyDb := &AnyKVStore{db}
+	app := appFactory(logger, anyDb, nil, true, appOptions, opts...)
 	if !cli.FlagSigverifyTxValue {
 		app.SetNotSigverifyTx()
 	}
 	return TestInstance[T]{
 		App:           app,
-		DB:            db,
+		DB:            anyDb,
 		WorkDir:       workDir,
 		Cfg:           tCfg,
 		AppLogger:     logger,

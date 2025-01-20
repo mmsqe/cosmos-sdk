@@ -91,7 +91,7 @@ func writeChangeset(tree Tree, changes corestore.StateChanges) error {
 			if err := tree.Remove(kv.Key); err != nil {
 				return err
 			}
-		} else if err := tree.Set(kv.Key, kv.Value); err != nil {
+		} else if err := tree.Set(kv.Key, kv.Value.([]byte)); err != nil {
 			return err
 		}
 	}

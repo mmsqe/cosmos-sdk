@@ -188,7 +188,7 @@ func (k Keeper) GetOwner(ctx context.Context, classID, nftID string) sdk.AccAddr
 	if err != nil {
 		panic(err)
 	}
-	return sdk.AccAddress(bz)
+	return sdk.AccAddress(bz.([]byte))
 }
 
 // GetBalance returns the specified account, the number of all nfts under the specified classID
@@ -204,7 +204,7 @@ func (k Keeper) GetTotalSupply(ctx context.Context, classID string) uint64 {
 	if err != nil {
 		panic(err)
 	}
-	return sdk.BigEndianToUint64(bz)
+	return sdk.BigEndianToUint64(bz.([]byte))
 }
 
 // HasNFT determines whether the specified classID and nftID exist

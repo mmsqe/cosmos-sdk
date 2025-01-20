@@ -184,7 +184,7 @@ func (t testStore) OpenKVStore(ctx context.Context) store.KVStore {
 	return t
 }
 
-func (t testStore) Get(key []byte) ([]byte, error) {
+func (t testStore) Get(key []byte) (any, error) {
 	return t.db.Get(key)
 }
 
@@ -192,7 +192,7 @@ func (t testStore) Has(key []byte) (bool, error) {
 	return t.db.Has(key)
 }
 
-func (t testStore) Set(key, value []byte) error {
+func (t testStore) Set(key []byte, value any) error {
 	return t.db.Set(key, value)
 }
 

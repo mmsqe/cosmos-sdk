@@ -8,6 +8,7 @@ import (
 
 	"cosmossdk.io/core/registry"
 	"cosmossdk.io/core/server"
+	corestore "cosmossdk.io/core/store"
 	"cosmossdk.io/core/transaction"
 	"cosmossdk.io/depinject"
 	"cosmossdk.io/depinject/appconfig"
@@ -45,8 +46,9 @@ type SimApp[T transaction.Tx] struct {
 
 	// required keepers during wiring
 	// others keepers are all in the app
-	UpgradeKeeper *upgradekeeper.Keeper
-	StakingKeeper *stakingkeeper.Keeper
+	UpgradeKeeper   *upgradekeeper.Keeper
+	StakingKeeper   *stakingkeeper.Keeper
+	ObjStoreService corestore.ObjectStoreService
 }
 
 // AppConfig returns the default app config.
@@ -153,7 +155,9 @@ func NewSimApp[T transaction.Tx](
 		&app.txConfig,
 		&app.interfaceRegistry,
 		&app.UpgradeKeeper,
-		&app.StakingKeeper)
+		&app.StakingKeeper,
+		&app.ObjStoreService,
+	)
 
 	if err := depinject.Inject(appConfig, outputs...); err != nil {
 		return nil, err

@@ -269,7 +269,7 @@ func (k Keeper) GetAllValidators(ctx context.Context) (validators []types.Valida
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
-		validator, err := types.UnmarshalValidator(k.cdc, iterator.Value())
+		validator, err := types.UnmarshalValidator(k.cdc, iterator.Value().([]byte))
 		if err != nil {
 			return nil, err
 		}
@@ -291,7 +291,7 @@ func (k Keeper) GetValidators(ctx context.Context, maxRetrieve uint32) (validato
 
 	i := 0
 	for ; iterator.Valid() && i < int(maxRetrieve); iterator.Next() {
-		validator, err := types.UnmarshalValidator(k.cdc, iterator.Value())
+		validator, err := types.UnmarshalValidator(k.cdc, iterator.Value().([]byte))
 		if err != nil {
 			return nil, err
 		}
@@ -319,7 +319,7 @@ func (k Keeper) GetBondedValidatorsByPower(ctx context.Context) ([]types.Validat
 	i := 0
 	for ; iterator.Valid() && i < int(maxValidators); iterator.Next() {
 		address := iterator.Value()
-		validator, err := k.GetValidator(ctx, address)
+		validator, err := k.GetValidator(ctx, address.([]byte))
 		if err != nil {
 			return nil, fmt.Errorf("validator record not found for address: %X", address)
 		}

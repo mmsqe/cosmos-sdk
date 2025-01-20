@@ -35,7 +35,7 @@ func GetPreviousProposerConsAddr(ctx context.Context, storeService store.KVStore
 	}
 
 	addrValue := gogotypes.BytesValue{}
-	err = cdc.Unmarshal(bz, &addrValue)
+	err = cdc.Unmarshal(bz.([]byte), &addrValue)
 	if err != nil {
 		return nil, err
 	}

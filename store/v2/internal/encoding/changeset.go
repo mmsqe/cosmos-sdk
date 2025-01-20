@@ -17,7 +17,7 @@ func encodedSize(cs *corestore.Changeset) int {
 			size += EncodeBytesSize(pair.Key)
 			size += EncodeUvarintSize(1) // pair.Remove
 			if !pair.Remove {
-				size += EncodeBytesSize(pair.Value)
+				size += EncodeBytesSize(pair.Value.([]byte))
 			}
 		}
 	}
@@ -60,7 +60,7 @@ func MarshalChangeset(cs *corestore.Changeset) ([]byte, error) {
 				if err := EncodeUvarint(&buf, 0); err != nil {
 					return nil, err
 				}
-				if err := EncodeBytes(&buf, pair.Value); err != nil {
+				if err := EncodeBytes(&buf, pair.Value.([]byte)); err != nil {
 					return nil, err
 				}
 			}

@@ -80,7 +80,7 @@ func Paginate(
 			if iterator.Error() != nil {
 				return nil, iterator.Error()
 			}
-			err := onResult(iterator.Key(), iterator.Value())
+			err := onResult(iterator.Key(), iterator.Value().([]byte))
 			if err != nil {
 				return nil, err
 			}
@@ -102,7 +102,7 @@ func Paginate(
 			continue
 		}
 		if count <= end {
-			err := onResult(iterator.Key(), iterator.Value())
+			err := onResult(iterator.Key(), iterator.Value().([]byte))
 			if err != nil {
 				return nil, err
 			}
@@ -137,9 +137,9 @@ func getIterator(prefixStore types.KVStore, start []byte, reverse bool) corestor
 				end = itr.Key()
 			}
 		}
-		return prefixStore.ReverseIterator(nil, end)
+		return &types.AnyIterator{prefixStore.ReverseIterator(nil, end)}
 	}
-	return prefixStore.Iterator(start, nil)
+	return &types.AnyIterator{prefixStore.Iterator(start, nil)}
 }
 
 // initPageRequestDefaults initializes a PageRequest's defaults when those are not set.

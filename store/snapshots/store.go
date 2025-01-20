@@ -81,7 +81,7 @@ func (s *Store) Get(height uint64, format uint32) (*types.Snapshot, error) {
 		return nil, nil
 	}
 	snapshot := &types.Snapshot{}
-	err = proto.Unmarshal(bytes, snapshot)
+	err = proto.Unmarshal(bytes.([]byte), snapshot)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to decode snapshot metadata for height %v format %v",
 			height, format)
@@ -103,7 +103,7 @@ func (s *Store) GetLatest() (*types.Snapshot, error) {
 	var snapshot *types.Snapshot
 	if iter.Valid() {
 		snapshot = &types.Snapshot{}
-		err := proto.Unmarshal(iter.Value(), snapshot)
+		err := proto.Unmarshal(iter.Value().([]byte), snapshot)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to decode latest snapshot")
 		}
@@ -123,7 +123,7 @@ func (s *Store) List() ([]*types.Snapshot, error) {
 	snapshots := make([]*types.Snapshot, 0)
 	for ; iter.Valid(); iter.Next() {
 		snapshot := &types.Snapshot{}
-		err := proto.Unmarshal(iter.Value(), snapshot)
+		err := proto.Unmarshal(iter.Value().([]byte), snapshot)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to decode snapshot info")
 		}

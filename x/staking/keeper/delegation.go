@@ -178,7 +178,7 @@ func (k Keeper) GetUnbondingDelegationsFromValidator(ctx context.Context, valAdd
 			if err != nil {
 				return true, err
 			}
-			unbondingDelegation, err := types.UnmarshalUBD(k.cdc, ubdValue)
+			unbondingDelegation, err := types.UnmarshalUBD(k.cdc, ubdValue.([]byte))
 			if err != nil {
 				return true, err
 			}

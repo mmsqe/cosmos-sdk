@@ -46,10 +46,15 @@ func (k Keeper) GetClass(ctx context.Context, classID string) (nft.Class, bool) 
 		return class, false
 	}
 
-	if len(bz) == 0 {
+	valueBytes, ok := bz.([]byte)
+	if !ok {
 		return class, false
 	}
-	k.cdc.MustUnmarshal(bz, &class)
+
+	if len(valueBytes) == 0 {
+		return class, false
+	}
+	k.cdc.MustUnmarshal(valueBytes, &class)
 	return class, true
 }
 

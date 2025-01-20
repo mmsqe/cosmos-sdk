@@ -16,6 +16,10 @@ func NewMemoryStoreService(address []byte) store.MemoryStoreService {
 	return storeService{actor: address}
 }
 
+func NewObjectStoreService(address []byte) store.ObjectStoreService {
+	return storeService{actor: address}
+}
+
 type storeService struct {
 	actor []byte
 }
@@ -34,5 +38,9 @@ func (s storeService) OpenKVStore(ctx context.Context) store.KVStore {
 }
 
 func (s storeService) OpenMemoryStore(ctx context.Context) store.KVStore {
+	return s.OpenKVStore(ctx)
+}
+
+func (s storeService) OpenObjectStore(ctx context.Context) store.KVStore {
 	return s.OpenKVStore(ctx)
 }

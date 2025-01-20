@@ -26,7 +26,7 @@ func (e *Exporter) Next() (*snapshotstypes.SnapshotIAVLItem, error) {
 
 	return &snapshotstypes.SnapshotIAVLItem{
 		Key:     item.Key(),
-		Value:   item.Value(),
+		Value:   item.Value().([]byte),
 		Version: item.Version(),
 		Height:  int32(item.Height()),
 	}, nil

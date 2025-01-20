@@ -41,12 +41,12 @@ func NewMemKV() MemKV {
 }
 
 // set adds a new key-value pair to the change set's tree.
-func (bt MemKV) set(key, value []byte) {
+func (bt MemKV) set(key []byte, value any) {
 	bt.tree.Set(newItem(key, value))
 }
 
 // get retrieves the value associated with the given key from the MemKV's tree.
-func (bt MemKV) get(key []byte) (value []byte, found bool) {
+func (bt MemKV) get(key []byte) (value any, found bool) {
 	it, found := bt.tree.Get(item{key: key})
 	return it.value, found
 }
@@ -78,7 +78,7 @@ func (bt MemKV) reverseIterator(start, end []byte) (store.Iterator, error) {
 
 // KV impl
 
-func (bt MemKV) Get(key []byte) ([]byte, error) {
+func (bt MemKV) Get(key []byte) (any, error) {
 	value, _ := bt.get(key)
 	return value, nil
 }
@@ -88,7 +88,7 @@ func (bt MemKV) Has(key []byte) (bool, error) {
 	return found, nil
 }
 
-func (bt MemKV) Set(key, value []byte) error {
+func (bt MemKV) Set(key []byte, value any) error {
 	bt.set(key, value)
 	return nil
 }
@@ -109,7 +109,7 @@ func (bt MemKV) ReverseIterator(start, end []byte) (store.Iterator, error) {
 // item is a btree item with byte slices as keys and values
 type item struct {
 	key   []byte
-	value []byte
+	value any
 }
 
 // byKeys compares the items by key
@@ -118,7 +118,7 @@ func byKeys(a, b item) bool {
 }
 
 // newItem creates a new pair item.
-func newItem(key, value []byte) item {
+func newItem(key []byte, value any) item {
 	return item{key: key, value: value}
 }
 
@@ -245,7 +245,7 @@ func (mi *memIterator) Key() []byte {
 }
 
 // Value returns the value of the current item in the iterator.
-func (mi *memIterator) Value() []byte {
+func (mi *memIterator) Value() any {
 	mi.assertValid()
 	return mi.iter.Item().value
 }
@@ -273,7 +273,7 @@ func NewMemDB() store.KVStoreWithBatch {
 
 // KVStore implementation
 
-func (bt *MemDB) Get(key []byte) ([]byte, error) {
+func (bt *MemDB) Get(key []byte) (any, error) {
 	bt.mtx.RLock()
 	defer bt.mtx.RUnlock()
 	return bt.kv.Get(key)
@@ -285,13 +285,13 @@ func (bt *MemDB) Has(key []byte) (bool, error) {
 	return bt.kv.Has(key)
 }
 
-func (bt *MemDB) Set(key, value []byte) error {
+func (bt *MemDB) Set(key []byte, value any) error {
 	bt.mtx.Lock()
 	defer bt.mtx.Unlock()
 	return bt.kv.Set(key, value)
 }
 
-func (bt *MemDB) SetSync(key, value []byte) error {
+func (bt *MemDB) SetSync(key []byte, value any) error {
 	return bt.Set(key, value)
 }
 

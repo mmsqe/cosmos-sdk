@@ -62,7 +62,7 @@ func NewMemDB() *MemDB {
 }
 
 // Get implements DB.
-func (db *MemDB) Get(key []byte) ([]byte, error) {
+func (db *MemDB) Get(key []byte) (any, error) {
 	if len(key) == 0 {
 		return nil, errors.ErrKeyEmpty
 	}
@@ -88,7 +88,7 @@ func (db *MemDB) Has(key []byte) (bool, error) {
 }
 
 // Set implements DB.
-func (db *MemDB) Set(key, value []byte) error {
+func (db *MemDB) Set(key []byte, value any) error {
 	if len(key) == 0 {
 		return errors.ErrKeyEmpty
 	}
@@ -97,8 +97,7 @@ func (db *MemDB) Set(key, value []byte) error {
 	}
 	db.mtx.Lock()
 	defer db.mtx.Unlock()
-
-	db.set(key, value)
+	db.set(key, value.([]byte))
 	return nil
 }
 
@@ -349,7 +348,7 @@ func (i *memDBIterator) Key() []byte {
 }
 
 // Value implements Iterator.
-func (i *memDBIterator) Value() []byte {
+func (i *memDBIterator) Value() any {
 	i.assertIsValid()
 	return i.item.value
 }

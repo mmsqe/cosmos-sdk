@@ -23,7 +23,7 @@ func NewStore[T store.Reader](parent T) Store[T] {
 }
 
 // Get implements types.KVStore.
-func (s Store[T]) Get(key []byte) (value []byte, err error) {
+func (s Store[T]) Get(key []byte) (value any, err error) {
 	// if found in memory cache, immediately return.
 	value, found := s.changeSet.get(key)
 	if found {
@@ -38,7 +38,7 @@ func (s Store[T]) Get(key []byte) (value []byte, err error) {
 }
 
 // Set implements types.KVStore.
-func (s Store[T]) Set(key, value []byte) error {
+func (s Store[T]) Set(key []byte, value any) error {
 	if value == nil {
 		return errors.New("cannot set a nil value")
 	}

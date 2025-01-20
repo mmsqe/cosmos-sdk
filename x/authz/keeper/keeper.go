@@ -56,7 +56,7 @@ func (k Keeper) getGrant(ctx context.Context, skey []byte) (grant authz.Grant, f
 	if bz == nil {
 		return grant, false
 	}
-	k.cdc.MustUnmarshal(bz, &grant)
+	k.cdc.MustUnmarshal(bz.([]byte), &grant)
 	return grant, true
 }
 
@@ -406,7 +406,7 @@ func (k Keeper) getGrantQueueItem(ctx context.Context, expiration time.Time, gra
 	}
 
 	var queueItems authz.GrantQueueItem
-	if err := k.cdc.Unmarshal(bz, &queueItems); err != nil {
+	if err := k.cdc.Unmarshal(bz.([]byte), &queueItems); err != nil {
 		return nil, err
 	}
 	return &queueItems, nil
@@ -448,7 +448,7 @@ func (k Keeper) removeFromGrantQueue(ctx context.Context, grantKey []byte, grant
 	}
 
 	var queueItem authz.GrantQueueItem
-	if err := k.cdc.Unmarshal(bz, &queueItem); err != nil {
+	if err := k.cdc.Unmarshal(bz.([]byte), &queueItem); err != nil {
 		return err
 	}
 
@@ -490,7 +490,7 @@ func (k Keeper) DequeueAndDeleteExpiredGrants(ctx context.Context, limit int) er
 	count := 0
 	for ; iterator.Valid(); iterator.Next() {
 		var queueItem authz.GrantQueueItem
-		if err := k.cdc.Unmarshal(iterator.Value(), &queueItem); err != nil {
+		if err := k.cdc.Unmarshal(iterator.Value().([]byte), &queueItem); err != nil {
 			return err
 		}
 

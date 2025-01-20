@@ -35,12 +35,12 @@ func newChangeSet() changeSet {
 }
 
 // set adds a new key-value pair to the change set's tree.
-func (bt changeSet) set(key, value []byte) {
+func (bt changeSet) set(key []byte, value any) {
 	bt.tree.Set(newItem(key, value))
 }
 
 // get retrieves the value associated with the given key from the changeSet's tree.
-func (bt changeSet) get(key []byte) (value []byte, found bool) {
+func (bt changeSet) get(key []byte) (value any, found bool) {
 	it, found := bt.tree.Get(item{key: key})
 	return it.value, found
 }
@@ -73,7 +73,7 @@ func (bt changeSet) reverseIterator(start, end []byte) (*memIterator, error) {
 // item is a btree item with byte slices as keys and values
 type item struct {
 	key   []byte
-	value []byte
+	value any
 }
 
 // byKeys compares the items by key
@@ -82,7 +82,7 @@ func byKeys(a, b item) bool {
 }
 
 // newItem creates a new pair item.
-func newItem(key, value []byte) item {
+func newItem(key []byte, value any) item {
 	return item{key: key, value: value}
 }
 
@@ -219,7 +219,7 @@ func (mi *memIterator) Key() []byte {
 }
 
 // Value returns the value of the current item in the iterator.
-func (mi *memIterator) Value() []byte {
+func (mi *memIterator) Value() any {
 	return mi.iter.Item().value
 }
 

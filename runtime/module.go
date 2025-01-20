@@ -103,6 +103,7 @@ func init() {
 			ProvideGenesisTxHandler,
 			ProvideEnvironment,
 			ProvideTransientStoreService,
+			ProvideObjectStoreService,
 			ProvideModuleManager,
 			ProvideCometService,
 			ProvideModuleConfigMaps,
@@ -243,7 +244,11 @@ func ProvideMemoryStoreKey(
 	return storeKey
 }
 
-func ProvideObjectStoreKey(key depinject.ModuleKey, app *AppBuilder) *storetypes.ObjectStoreKey {
+func ProvideObjectStoreKey(config *runtimev1alpha1.Module, key depinject.ModuleKey, app *AppBuilder) *storetypes.ObjectStoreKey {
+	if slices.Contains(config.SkipStoreKeys, key.Name()) {
+		return nil
+	}
+
 	storeKey := storetypes.NewObjectStoreKey(fmt.Sprintf("object:%s", key.Name()))
 	registerStoreKey(app, storeKey)
 	return storeKey
@@ -264,27 +269,29 @@ func ProvideEnvironment(
 	app *AppBuilder,
 	msgServiceRouter *baseapp.MsgServiceRouter,
 	queryServiceRouter *baseapp.GRPCQueryRouter,
-) (store.KVStoreService, store.MemoryStoreService, appmodule.Environment) {
+) (store.KVStoreService, store.MemoryStoreService, store.ObjectStoreService, appmodule.Environment) {
 	var (
 		kvService    store.KVStoreService     = failingStoreService{}
 		memKvService store.MemoryStoreService = failingStoreService{}
+		objService   store.ObjectStoreService = failingStoreService{}
 	)
 
-	// skips modules that have no store
-	if !slices.Contains(config.SkipStoreKeys, key.Name()) {
-		storeKey := ProvideKVStoreKey(config, key, app)
-		kvService = kvStoreService{key: storeKey}
+	storeKey := ProvideKVStoreKey(config, key, app)
+	kvService = kvStoreService{key: storeKey}
 
-		memStoreKey := ProvideMemoryStoreKey(config, key, app)
-		memKvService = memStoreService{key: memStoreKey}
-	}
+	memStoreKey := ProvideMemoryStoreKey(config, key, app)
+	memKvService = memStoreService{key: memStoreKey}
 
-	return kvService, memKvService, NewEnvironment(
+	objStoreKey := ProvideObjectStoreKey(config, key, app)
+	objService = objectStoreService{key: objStoreKey}
+
+	return kvService, memKvService, objService, NewEnvironment(
 		kvService,
 		logger.With(log.ModuleKey, fmt.Sprintf("x/%s", key.Name())),
 		EnvWithMsgRouterService(msgServiceRouter),
 		EnvWithQueryRouterService(queryServiceRouter),
 		EnvWithMemStoreService(memKvService),
+		EnvWithObjStoreService(objService),
 	)
 }
 
@@ -299,6 +306,11 @@ func ProvideTransientStoreService(
 	}
 
 	return transientStoreService{key: storeKey}
+}
+
+func ProvideObjectStoreService(config *runtimev1alpha1.Module, key depinject.ModuleKey, app *AppBuilder) store.ObjectStoreService {
+	storeKey := ProvideObjectStoreKey(config, key, app)
+	return objectStoreService{key: storeKey}
 }
 
 func ProvideCometService() comet.Service {

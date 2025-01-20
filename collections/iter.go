@@ -219,7 +219,7 @@ type Iterator[K, V any] struct {
 
 // Value returns the current iterator value bytes decoded.
 func (i Iterator[K, V]) Value() (V, error) {
-	return i.vc.Decode(i.iter.Value())
+	return i.vc.Decode(i.iter.Value().([]byte))
 }
 
 // Key returns the current storetypes.Iterator decoded key.

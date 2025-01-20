@@ -30,7 +30,7 @@ func MigrateStore(ctx context.Context, storeService corestoretypes.KVStoreServic
 	}
 
 	var params govv1.Params
-	err = cdc.Unmarshal(paramsBz, &params)
+	err = cdc.Unmarshal(paramsBz.([]byte), &params)
 	if err != nil {
 		return err
 	}

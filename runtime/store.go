@@ -7,8 +7,8 @@ import (
 	"io"
 
 	"cosmossdk.io/core/store"
+	corestore "cosmossdk.io/core/store"
 	storetypes "cosmossdk.io/store/types"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -49,6 +49,18 @@ func (t transientStoreService) OpenTransientStore(ctx context.Context) store.KVS
 	return newKVStore(sdk.UnwrapSDKContext(ctx).KVStore(t.key))
 }
 
+func NewObjectStoreService(key *storetypes.ObjectStoreKey) store.ObjectStoreService {
+	return &objectStoreService{key}
+}
+
+type objectStoreService struct {
+	key *storetypes.ObjectStoreKey
+}
+
+func (k objectStoreService) OpenObjectStore(ctx context.Context) store.KVStore {
+	return newObjectStore(sdk.UnwrapSDKContext(ctx).ObjectStore(k.key))
+}
+
 type failingStoreService struct{}
 
 func (failingStoreService) OpenKVStore(ctx context.Context) store.KVStore {
@@ -63,6 +75,10 @@ func (failingStoreService) OpenTransientStore(ctx context.Context) store.KVStore
 	panic("transient kv store service not available for this module: verify runtime `skip_store_keys` app config if not expected")
 }
 
+func (failingStoreService) OpenObjectStore(ctx context.Context) store.KVStore {
+	panic("object kv store service not available for this module: verify runtime `skip_store_keys` app config if not expected")
+}
+
 // CoreKVStore is a wrapper of Core/Store kvstore interface
 type coreKVStore struct {
 	kvStore storetypes.KVStore
@@ -74,7 +90,7 @@ func newKVStore(store storetypes.KVStore) store.KVStore {
 }
 
 // Get returns value corresponding to the key. Panics on nil key.
-func (store coreKVStore) Get(key []byte) ([]byte, error) {
+func (store coreKVStore) Get(key []byte) (any, error) {
 	return store.kvStore.Get(key), nil
 }
 
@@ -84,8 +100,8 @@ func (store coreKVStore) Has(key []byte) (bool, error) {
 }
 
 // Set sets the key. Panics on nil key or value.
-func (store coreKVStore) Set(key, value []byte) error {
-	store.kvStore.Set(key, value)
+func (store coreKVStore) Set(key []byte, value any) error {
+	store.kvStore.Set(key, value.([]byte))
 	return nil
 }
 
@@ -102,7 +118,7 @@ func (store coreKVStore) Delete(key []byte) error {
 // CONTRACT: No writes may happen within a domain while an iterator exists over it.
 // Exceptionally allowed for cachekv.Store, safe to write in the modules.
 func (store coreKVStore) Iterator(start, end []byte) (store.Iterator, error) {
-	return store.kvStore.Iterator(start, end), nil
+	return &storetypes.AnyIterator{store.kvStore.Iterator(start, end)}, nil
 }
 
 // ReverseIterator iterates over a domain of keys in descending order. End is exclusive.
@@ -111,7 +127,58 @@ func (store coreKVStore) Iterator(start, end []byte) (store.Iterator, error) {
 // CONTRACT: No writes may happen within a domain while an iterator exists over it.
 // Exceptionally allowed for cachekv.Store, safe to write in the modules.
 func (store coreKVStore) ReverseIterator(start, end []byte) (store.Iterator, error) {
-	return store.kvStore.ReverseIterator(start, end), nil
+	return &storetypes.AnyIterator{store.kvStore.ReverseIterator(start, end)}, nil
+}
+
+type coreObjKVStore struct {
+	objKVStore storetypes.ObjKVStore
+}
+
+// NewObjectStore returns a wrapper of Core/Store objKVstore interface
+// Remove once store migrates to core/store objKVstore interface
+func newObjectStore(objKVStore storetypes.ObjKVStore) store.KVStore {
+	return coreObjKVStore{objKVStore}
+}
+
+// Get returns nil iff key doesn't exist. Errors on nil key.
+func (store coreObjKVStore) Get(key []byte) (any, error) {
+	return store.objKVStore.Get(key), nil
+}
+
+// Has checks if a key exists. Errors on nil key.
+func (store coreObjKVStore) Has(key []byte) (bool, error) {
+	return store.objKVStore.Has(key), nil
+}
+
+// Set sets the key. Errors on nil key or value.
+func (store coreObjKVStore) Set(key []byte, value any) error {
+	store.objKVStore.Set(key, value)
+	return nil
+}
+
+// Delete deletes the key. Errors on nil key.
+func (store coreObjKVStore) Delete(key []byte) error {
+	store.objKVStore.Delete(key)
+	return nil
+}
+
+// Iterator iterates over a domain of keys in ascending order. End is exclusive.
+// Start must be less than end, or the Iterator is invalid.
+// Iterator must be closed by caller.
+// To iterate over entire domain, use store.Iterator(nil, nil)
+// CONTRACT: No writes may happen within a domain while an iterator exists over it.
+// Exceptionally allowed for cachekv.Store, safe to write in the modules.
+func (store coreObjKVStore) Iterator(start, end []byte) (corestore.Iterator, error) {
+	return store.objKVStore.Iterator(start, end), nil
+}
+
+// ReverseIterator iterates over a domain of keys in descending order. End is exclusive.
+// Start must be less than end, or the Iterator is invalid.
+// Iterator must be closed by caller.
+// CONTRACT: No writes may happen within a domain while an iterator exists over it.
+// Exceptionally allowed for cachekv.Store, safe to write in the modules.
+func (store coreObjKVStore) ReverseIterator(start, end []byte) (corestore.Iterator, error) {
+	return store.objKVStore.ReverseIterator(start, end), nil
 }
 
 // Adapter
@@ -145,7 +212,7 @@ func (s kvStoreAdapter) Get(key []byte) []byte {
 	if err != nil {
 		panic(err)
 	}
-	return bz
+	return bz.([]byte)
 }
 
 func (s kvStoreAdapter) Has(key []byte) bool {
@@ -168,7 +235,7 @@ func (s kvStoreAdapter) Iterator(start, end []byte) storetypes.Iterator {
 	if err != nil {
 		panic(err)
 	}
-	return it
+	return &corestore.BytesIterator{it}
 }
 
 func (s kvStoreAdapter) ReverseIterator(start, end []byte) storetypes.Iterator {
@@ -176,7 +243,7 @@ func (s kvStoreAdapter) ReverseIterator(start, end []byte) storetypes.Iterator {
 	if err != nil {
 		panic(err)
 	}
-	return it
+	return &corestore.BytesIterator{it}
 }
 
 func KVStoreAdapter(store store.KVStore) storetypes.KVStore {

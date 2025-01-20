@@ -53,7 +53,7 @@ func NewGoLevelDBWithOpts(name, dir string, o *opt.Options) (*GoLevelDB, error) 
 }
 
 // Get implements corestore.KVStore.
-func (db *GoLevelDB) Get(key []byte) ([]byte, error) {
+func (db *GoLevelDB) Get(key []byte) (any, error) {
 	if len(key) == 0 {
 		return nil, storeerrors.ErrKeyEmpty
 	}
@@ -73,14 +73,14 @@ func (db *GoLevelDB) Has(key []byte) (bool, error) {
 }
 
 // Set implements corestore.KVStore.
-func (db *GoLevelDB) Set(key, value []byte) error {
+func (db *GoLevelDB) Set(key []byte, value any) error {
 	if len(key) == 0 {
 		return storeerrors.ErrKeyEmpty
 	}
 	if value == nil {
 		return storeerrors.ErrValueNil
 	}
-	return db.db.Put(key, value, nil)
+	return db.db.Put(key, value.([]byte), nil)
 }
 
 // SetSync implements corestore.KVStore.
@@ -284,7 +284,7 @@ func (itr *goLevelDBIterator) Key() []byte {
 }
 
 // Value implements Iterator.
-func (itr *goLevelDBIterator) Value() []byte {
+func (itr *goLevelDBIterator) Value() any {
 	// Value returns a copy of the current value.
 	// See https://github.com/syndtr/goleveldb/blob/52c212e6c196a1404ea59592d3f1c227c9f034b2/leveldb/iterator/iter.go#L88
 	itr.assertIsValid()

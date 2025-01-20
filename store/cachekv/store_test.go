@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	dbm "github.com/cosmos/cosmos-db"
 	"github.com/stretchr/testify/require"
 
 	corestore "cosmossdk.io/core/store"
@@ -449,7 +450,7 @@ func TestIteratorDeadlock(t *testing.T) {
 }
 
 func TestBranchStore(t *testing.T) {
-	mem := dbadapter.Store{DB: dbm.NewMemDB()}
+	mem := dbadapter.DBStore{DB: dbm.NewMemDB()}
 	store := cachekv.NewStore(mem)
 
 	store.Set([]byte("key1"), []byte("value1"))
@@ -597,12 +598,11 @@ func assertIterateDomainCompare(t *testing.T, st types.KVStore, mem corestore.KV
 	itr2, err := mem.Iterator(nil, nil) // ground truth
 	require.NoError(t, err)
 	checkIterators(t, itr, itr2)
-	checkIterators(t, itr2, itr)
 	require.NoError(t, itr.Close())
 	require.NoError(t, itr2.Close())
 }
 
-func checkIterators(t *testing.T, itr, itr2 types.Iterator) {
+func checkIterators(t *testing.T, itr types.Iterator, itr2 corestore.Iterator) {
 	t.Helper()
 	for ; itr.Valid(); itr.Next() {
 		require.True(t, itr2.Valid())

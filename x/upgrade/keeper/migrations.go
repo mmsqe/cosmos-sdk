@@ -81,7 +81,7 @@ func migrateAppVersion(ctx context.Context, keeper *Keeper) error {
 	if err != nil {
 		return fmt.Errorf("error getting legacy protocol version: %w", err)
 	}
-	appVersion := binary.BigEndian.Uint64(versionBytes)
+	appVersion := binary.BigEndian.Uint64(versionBytes.([]byte))
 
 	if err := keeper.versionModifier.SetAppVersion(ctx, appVersion); err != nil {
 		return fmt.Errorf("error migration app version: %w", err)

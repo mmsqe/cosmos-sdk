@@ -265,7 +265,9 @@ func (suite *KeeperTestSuite) TestMigrateAccountNumberUnsafe() {
 	require.NoError(suite.T(), err)
 
 	// check if value is set
-	val, err = store.Get(types.GlobalAccountNumberKey.Bytes())
+	value, err := store.Get(types.GlobalAccountNumberKey.Bytes())
+	val, ok := value.([]byte)
+	require.True(suite.T(), ok)
 	require.NoError(suite.T(), err)
 	require.NotEmpty(suite.T(), val)
 
@@ -276,7 +278,9 @@ func (suite *KeeperTestSuite) TestMigrateAccountNumberUnsafe() {
 	err = keeper.MigrateAccountNumberUnsafe(suite.ctx, &suite.accountKeeper)
 	require.NoError(suite.T(), err)
 
-	val, err = store.Get(types.GlobalAccountNumberKey.Bytes())
+	value, err = store.Get(types.GlobalAccountNumberKey.Bytes())
+	val, ok = value.([]byte)
+	require.True(suite.T(), ok)
 	require.NoError(suite.T(), err)
 	require.Empty(suite.T(), val)
 }

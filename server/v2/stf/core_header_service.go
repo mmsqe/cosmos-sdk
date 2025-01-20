@@ -2,6 +2,7 @@ package stf
 
 import (
 	"context"
+	"reflect"
 
 	"cosmossdk.io/core/header"
 	"cosmossdk.io/core/store"
@@ -49,10 +50,9 @@ func (s STF[T]) getHeaderInfo(state store.WriterMap) (i header.Info, err error) 
 	if err != nil {
 		return header.Info{}, err
 	}
-	if v == nil {
+	if v == nil || reflect.ValueOf(v).IsNil() {
 		return header.Info{}, nil
 	}
-
-	err = i.FromBytes(v)
+	err = i.FromBytes(v.([]byte))
 	return i, err
 }

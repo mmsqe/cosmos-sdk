@@ -226,17 +226,16 @@ func (ps paramStore) Has(_ context.Context) (bool, error) {
 }
 
 func (ps paramStore) Get(_ context.Context) (cmtproto.ConsensusParams, error) {
-	bz, err := ps.db.Get(ParamStoreKey)
+	val, err := ps.db.Get(ParamStoreKey)
 	if err != nil {
 		return cmtproto.ConsensusParams{}, err
 	}
 
-	if len(bz) == 0 {
+	if val == nil || len(val.([]byte)) == 0 {
 		return cmtproto.ConsensusParams{}, errors.New("params not found")
 	}
-
 	var params cmtproto.ConsensusParams
-	if err := json.Unmarshal(bz, &params); err != nil {
+	if err := json.Unmarshal(val.([]byte), &params); err != nil {
 		return cmtproto.ConsensusParams{}, err
 	}
 

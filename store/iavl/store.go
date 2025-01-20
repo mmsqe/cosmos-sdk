@@ -264,7 +264,7 @@ func (st *Store) Iterator(start, end []byte) types.Iterator {
 	if err != nil {
 		panic(err)
 	}
-	return iterator
+	return &corestore.BytesIterator{iterator}
 }
 
 // ReverseIterator implements types.KVStore.
@@ -273,7 +273,7 @@ func (st *Store) ReverseIterator(start, end []byte) types.Iterator {
 	if err != nil {
 		panic(err)
 	}
-	return iterator
+	return &corestore.BytesIterator{iterator}
 }
 
 // SetInitialVersion sets the initial version of the IAVL tree. It is used when

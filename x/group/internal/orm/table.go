@@ -7,6 +7,7 @@ import (
 	"github.com/cosmos/gogoproto/proto"
 
 	"cosmossdk.io/core/address"
+	corestore "cosmossdk.io/core/store"
 	storetypes "cosmossdk.io/core/store"
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/store/types"
@@ -235,7 +236,7 @@ func (a table) PrefixScan(store storetypes.KVStore, start, end RowID) (Iterator,
 	return &typeSafeIterator{
 		store:     store,
 		rowGetter: NewTypeSafeRowGetter(a.prefix, a.model, a.cdc),
-		it:        it,
+		it:        &corestore.BytesIterator{it},
 	}, nil
 }
 
@@ -262,7 +263,7 @@ func (a table) ReversePrefixScan(store storetypes.KVStore, start, end RowID) (It
 	return &typeSafeIterator{
 		store:     store,
 		rowGetter: NewTypeSafeRowGetter(a.prefix, a.model, a.cdc),
-		it:        it,
+		it:        &corestore.BytesIterator{it},
 	}, nil
 }
 

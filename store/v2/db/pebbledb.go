@@ -57,7 +57,7 @@ func (db *PebbleDB) Close() error {
 	return err
 }
 
-func (db *PebbleDB) Get(key []byte) ([]byte, error) {
+func (db *PebbleDB) Get(key []byte) (any, error) {
 	if len(key) == 0 {
 		return nil, storeerrors.ErrKeyEmpty
 	}
@@ -84,15 +84,14 @@ func (db *PebbleDB) Has(key []byte) (bool, error) {
 	return bz != nil, nil
 }
 
-func (db *PebbleDB) Set(key, value []byte) error {
+func (db *PebbleDB) Set(key []byte, value any) error {
 	if len(key) == 0 {
 		return storeerrors.ErrKeyEmpty
 	}
 	if value == nil {
 		return storeerrors.ErrValueNil
 	}
-
-	return db.storage.Set(key, value, &pebble.WriteOptions{Sync: false})
+	return db.storage.Set(key, value.([]byte), &pebble.WriteOptions{Sync: false})
 }
 
 func (db *PebbleDB) Delete(key []byte) error {
@@ -208,7 +207,7 @@ func (itr *pebbleDBIterator) Key() []byte {
 	return slices.Clone(itr.source.Key())
 }
 
-func (itr *pebbleDBIterator) Value() []byte {
+func (itr *pebbleDBIterator) Value() any {
 	itr.assertIsValid()
 	return slices.Clone(itr.source.Value())
 }

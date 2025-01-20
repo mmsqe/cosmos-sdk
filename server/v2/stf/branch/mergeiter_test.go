@@ -159,7 +159,7 @@ func TestMergedIterator_Next(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			var got [][2]string
 			for iter := spec.setup(); iter.Valid(); iter.Next() {
-				got = append(got, [2]string{string(iter.Key()), string(iter.Value())})
+				got = append(got, [2]string{string(iter.Key()), string(iter.Value().([]byte))})
 			}
 			if !reflect.DeepEqual(spec.exp, got) {
 				t.Errorf("expected: %#v, got: %#v", spec.exp, got)

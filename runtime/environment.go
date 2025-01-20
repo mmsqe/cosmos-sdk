@@ -34,6 +34,7 @@ func NewEnvironment(
 		MsgRouterService:   NewMsgRouterService(failingMsgRouter{}),
 		QueryRouterService: NewQueryRouterService(failingQueryRouter{}),
 		MemStoreService:    failingMemStore{},
+		ObjStoreService:    failingObjStore{},
 	}
 
 	for _, opt := range opts {
@@ -60,6 +61,12 @@ func EnvWithQueryRouterService(queryServiceRouter *baseapp.GRPCQueryRouter) EnvO
 func EnvWithMemStoreService(memStoreService store.MemoryStoreService) EnvOption {
 	return func(env *appmodule.Environment) {
 		env.MemStoreService = memStoreService
+	}
+}
+
+func EnvWithObjStoreService(objStoreService store.ObjectStoreService) EnvOption {
+	return func(env *appmodule.Environment) {
+		env.ObjStoreService = objStoreService
 	}
 }
 
@@ -119,4 +126,14 @@ type failingMemStore struct {
 
 func (failingMemStore) OpenMemoryStore(context.Context) store.KVStore {
 	panic("memory store not set")
+}
+
+// failingObjStore is a object store that panics when accessed
+// this is to ensure all fields are set in environment
+type failingObjStore struct {
+	store.ObjectStoreService
+}
+
+func (failingObjStore) OpenObjectStore(context.Context) store.KVStore {
+	panic("object store not set")
 }

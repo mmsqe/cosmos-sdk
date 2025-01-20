@@ -1,6 +1,8 @@
 package gas
 
 import (
+	"fmt"
+
 	"cosmossdk.io/core/gas"
 	"cosmossdk.io/core/store"
 )
@@ -31,7 +33,15 @@ func NewStore(gc gas.GasConfig, meter gas.Meter, parent store.Writer) *Store {
 	}
 }
 
-func (s *Store) Get(key []byte) ([]byte, error) {
+func castV(value any) ([]byte, error) {
+	valueBytes, ok := value.([]byte)
+	if !ok {
+		return nil, fmt.Errorf("failed to cast value to []byte")
+	}
+	return valueBytes, nil
+}
+
+func (s *Store) Get(key []byte) (any, error) {
 	if err := s.gasMeter.Consume(s.gasConfig.ReadCostFlat, DescReadCostFlat); err != nil {
 		return nil, err
 	}
@@ -40,10 +50,13 @@ func (s *Store) Get(key []byte) ([]byte, error) {
 	if err := s.gasMeter.Consume(s.gasConfig.ReadCostPerByte*gas.Gas(len(key)), DescReadPerByte); err != nil {
 		return nil, err
 	}
-	if err := s.gasMeter.Consume(s.gasConfig.ReadCostPerByte*gas.Gas(len(value)), DescReadPerByte); err != nil {
+	valueBytes, err := castV(value)
+	if err != nil {
 		return nil, err
 	}
-
+	if err := s.gasMeter.Consume(s.gasConfig.ReadCostPerByte*gas.Gas(len(valueBytes)), DescReadPerByte); err != nil {
+		return nil, err
+	}
 	return value, err
 }
 
@@ -55,14 +68,18 @@ func (s *Store) Has(key []byte) (bool, error) {
 	return s.parent.Has(key)
 }
 
-func (s *Store) Set(key, value []byte) error {
+func (s *Store) Set(key []byte, value any) error {
 	if err := s.gasMeter.Consume(s.gasConfig.WriteCostFlat, DescWriteCostFlat); err != nil {
 		return err
 	}
 	if err := s.gasMeter.Consume(s.gasConfig.WriteCostPerByte*gas.Gas(len(key)), DescWritePerByte); err != nil {
 		return err
 	}
-	if err := s.gasMeter.Consume(s.gasConfig.WriteCostPerByte*gas.Gas(len(value)), DescWritePerByte); err != nil {
+	valueBytes, err := castV(value)
+	if err != nil {
+		return err
+	}
+	if err := s.gasMeter.Consume(s.gasConfig.WriteCostPerByte*gas.Gas(len(valueBytes)), DescWritePerByte); err != nil {
 		return err
 	}
 
@@ -131,7 +148,7 @@ func (itr *iterator) Key() []byte {
 	return itr.parent.Key()
 }
 
-func (itr *iterator) Value() []byte {
+func (itr *iterator) Value() any {
 	return itr.parent.Value()
 }
 
@@ -163,7 +180,11 @@ func (itr *iterator) consumeGasSeek() error {
 		if err := itr.gasMeter.Consume(itr.gasConfig.ReadCostPerByte*gas.Gas(len(key)), DescValuePerByte); err != nil {
 			return err
 		}
-		if err := itr.gasMeter.Consume(itr.gasConfig.ReadCostPerByte*gas.Gas(len(value)), DescValuePerByte); err != nil {
+		valueBytes, err := castV(value)
+		if err != nil {
+			return err
+		}
+		if err := itr.gasMeter.Consume(itr.gasConfig.ReadCostPerByte*gas.Gas(len(valueBytes)), DescValuePerByte); err != nil {
 			return err
 		}
 	}

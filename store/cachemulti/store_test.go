@@ -29,7 +29,7 @@ func TestStoreGetKVStore(t *testing.T) {
 }
 
 func TestRunAtomic(t *testing.T) {
-	store := dbadapter.Store{DB: dbm.NewMemDB()}
+	store := dbadapter.DBStore{DB: dbm.NewMemDB()}
 	objStore := internal.NewBTreeStore(btree.NewBTree[any](),
 		func(v any) bool { return v == nil },
 		func(v any) int { return 1 },
@@ -63,7 +63,7 @@ func TestRunAtomic(t *testing.T) {
 }
 
 func TestBranchStore(t *testing.T) {
-	store := dbadapter.Store{DB: dbm.NewMemDB()}
+	store := dbadapter.DBStore{DB: dbm.NewMemDB()}
 	objStore := internal.NewBTreeStore(btree.NewBTree[any](),
 		func(v any) bool { return v == nil },
 		func(v any) int { return 1 },

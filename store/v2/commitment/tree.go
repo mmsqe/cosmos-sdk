@@ -15,7 +15,7 @@ var ErrorExportDone = errors.New("export is complete")
 
 // Tree is the interface that wraps the basic Tree methods.
 type Tree interface {
-	Set(key, value []byte) error
+	Set(key []byte, value any) error
 	Remove(key []byte) error
 	GetLatestVersion() (uint64, error)
 

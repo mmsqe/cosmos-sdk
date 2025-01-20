@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"reflect"
 
 	"cosmossdk.io/collections/codec"
 	"cosmossdk.io/core/store"
@@ -100,14 +101,14 @@ func (m Map[K, V]) Get(ctx context.Context, key K) (v V, err error) {
 	}
 
 	kvStore := m.sa(ctx)
-	valueBytes, err := kvStore.Get(bytesKey)
+	val, err := kvStore.Get(bytesKey)
 	if err != nil {
 		return v, err
 	}
-	if valueBytes == nil {
+	if val == nil || reflect.ValueOf(val).IsNil() {
 		return v, fmt.Errorf("%w: key '%s' of type %s", ErrNotFound, m.kc.Stringify(key), m.vc.ValueType())
 	}
-
+	valueBytes := val.([]byte)
 	v, err = m.vc.Decode(valueBytes)
 	if err != nil {
 		return v, fmt.Errorf("%w: value decode: %w", ErrEncoding, err)

@@ -53,7 +53,7 @@ func (roa *Reader) Has(key []byte) (bool, error) {
 	return val, nil
 }
 
-func (roa *Reader) Get(key []byte) ([]byte, error) {
+func (roa *Reader) Get(key []byte) (any, error) {
 	return roa.vReader.Get(roa.actor, roa.version, key)
 }
 

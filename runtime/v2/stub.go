@@ -19,3 +19,7 @@ func (failingStoreService) OpenMemoryStore(ctx context.Context) store.KVStore {
 func (failingStoreService) OpenTransientStore(ctx context.Context) store.KVStore {
 	panic("transient kv store service not available for this module: verify runtime `skip_store_keys` app config if not expected")
 }
+
+func (failingStoreService) OpenObjectStore(ctx context.Context) store.KVStore {
+	panic("object kv store service not available for this module: verify runtime `skip_store_keys` app config if not expected")
+}

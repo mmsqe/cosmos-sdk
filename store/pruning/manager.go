@@ -160,14 +160,14 @@ func loadPruningSnapshotHeights(db corestore.KVStoreWithBatch) ([]int64, error) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get post-snapshot pruned heights: %w", err)
 	}
-	if len(bz) == 0 {
+	if bz == nil || len(bz.([]byte)) == 0 {
 		return []int64{}, nil
 	}
-
-	pruneSnapshotHeights := make([]int64, len(bz)/8)
+	val := bz.([]byte)
+	pruneSnapshotHeights := make([]int64, len(val)/8)
 	i, offset := 0, 0
-	for offset < len(bz) {
-		h := int64(binary.BigEndian.Uint64(bz[offset : offset+8]))
+	for offset < len(val) {
+		h := int64(binary.BigEndian.Uint64(val[offset : offset+8]))
 		if h < 0 {
 			return nil, &NegativeHeightsError{Height: h}
 		}

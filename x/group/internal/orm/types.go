@@ -121,12 +121,10 @@ func NewTypeSafeRowGetter(prefixKey [2]byte, model reflect.Type, cdc codec.Codec
 		if err != nil {
 			return err
 		}
-
-		if len(bz) == 0 {
+		if bz == nil || len(bz.([]byte)) == 0 {
 			return sdkerrors.ErrNotFound
 		}
-
-		return cdc.Unmarshal(bz, dest)
+		return cdc.Unmarshal(bz.([]byte), dest)
 	}
 }
 

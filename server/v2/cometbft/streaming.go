@@ -8,6 +8,7 @@ import (
 	"cosmossdk.io/core/server"
 	"cosmossdk.io/core/store"
 	errorsmod "cosmossdk.io/errors/v2"
+	"cosmossdk.io/schema"
 	"cosmossdk.io/schema/appdata"
 	"cosmossdk.io/server/v2/streaming"
 )
@@ -97,7 +98,7 @@ func (c *consensus[T]) streamDeliverBlockChanges(
 	}
 	// stream the KVPairData to the listener.
 	if c.listener.OnKVPair != nil {
-		if err := c.listener.OnKVPair(appdata.KVPairData{Updates: stateChanges}); err != nil {
+		if err := c.listener.OnKVPair(appdata.KVPairData{Updates: convertToActorKVPairUpdates(stateChanges)}); err != nil {
 			return err
 		}
 	}
@@ -113,6 +114,24 @@ func (c *consensus[T]) streamDeliverBlockChanges(
 	}
 
 	return nil
+}
+
+func convertToActorKVPairUpdates(stateChanges []store.StateChanges) []appdata.ActorKVPairUpdate {
+	var updates []appdata.ActorKVPairUpdate
+	for _, change := range stateChanges {
+		update := appdata.ActorKVPairUpdate{
+			Actor: change.Actor,
+		}
+		for _, stateChange := range change.StateChanges {
+			update.StateChanges = append(update.StateChanges, schema.KVPairUpdate{
+				Key:    stateChange.Key,
+				Value:  stateChange.Value.([]byte),
+				Remove: stateChange.Remove,
+			})
+		}
+		updates = append(updates, update)
+	}
+	return updates
 }
 
 func intoStreamingKVPairs(stateChanges []store.StateChanges) []*streaming.StoreKVPair {
@@ -133,7 +152,7 @@ func intoStreamingKVPairs(stateChanges []store.StateChanges) []*streaming.StoreK
 			streamKvPairs = append(streamKvPairs, &streaming.StoreKVPair{
 				Address: address,
 				Key:     kv.Key,
-				Value:   kv.Value,
+				Value:   kv.Value.([]byte),
 				Delete:  kv.Remove,
 			})
 		}

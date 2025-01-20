@@ -5,6 +5,7 @@ import (
 
 	"github.com/cosmos/gogoproto/proto"
 
+	corestore "cosmossdk.io/core/store"
 	storetypes "cosmossdk.io/core/store"
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/store/types"
@@ -100,7 +101,7 @@ func (i MultiKeyIndex) Get(store storetypes.KVStore, searchKey interface{}) (Ite
 	if err != nil {
 		return nil, err
 	}
-	return indexIterator{store: store, it: it, rowGetter: i.rowGetter, indexKey: i.indexKey}, nil
+	return indexIterator{store: store, it: &corestore.BytesIterator{it}, rowGetter: i.rowGetter, indexKey: i.indexKey}, nil
 }
 
 // GetPaginated creates an iterator for the searchKey
@@ -126,7 +127,7 @@ func (i MultiKeyIndex) GetPaginated(store storetypes.KVStore, searchKey interfac
 	if err != nil {
 		return nil, err
 	}
-	return indexIterator{store: store, it: it, rowGetter: i.rowGetter, indexKey: i.indexKey}, nil
+	return indexIterator{store: store, it: &corestore.BytesIterator{it}, rowGetter: i.rowGetter, indexKey: i.indexKey}, nil
 }
 
 // PrefixScan returns an Iterator over a domain of keys in ascending order. End is exclusive.
@@ -158,7 +159,7 @@ func (i MultiKeyIndex) PrefixScan(store storetypes.KVStore, startI, endI interfa
 		return nil, err
 	}
 
-	return indexIterator{store: store, it: it, rowGetter: i.rowGetter, indexKey: i.indexKey}, nil
+	return indexIterator{store: store, it: &corestore.BytesIterator{it}, rowGetter: i.rowGetter, indexKey: i.indexKey}, nil
 }
 
 // ReversePrefixScan returns an Iterator over a domain of keys in descending order. End is exclusive.
@@ -182,7 +183,7 @@ func (i MultiKeyIndex) ReversePrefixScan(store storetypes.KVStore, startI, endI 
 		return nil, err
 	}
 
-	return indexIterator{store: store, it: it, rowGetter: i.rowGetter, indexKey: i.indexKey}, nil
+	return indexIterator{store: store, it: &corestore.BytesIterator{it}, rowGetter: i.rowGetter, indexKey: i.indexKey}, nil
 }
 
 // getStartEndBz gets the start and end bytes to be passed into the SDK store

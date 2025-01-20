@@ -25,7 +25,7 @@ func (k Keeper) IterateValidators(ctx context.Context, fn func(index int64, vali
 	i := int64(0)
 
 	for ; iterator.Valid(); iterator.Next() {
-		validator, err := types.UnmarshalValidator(k.cdc, iterator.Value())
+		validator, err := types.UnmarshalValidator(k.cdc, iterator.Value().([]byte))
 		if err != nil {
 			return err
 		}
@@ -56,7 +56,7 @@ func (k Keeper) IterateBondedValidatorsByPower(ctx context.Context, fn func(inde
 
 	i := int64(0)
 	for ; iterator.Valid() && i < int64(maxValidators); iterator.Next() {
-		address := iterator.Value()
+		address := iterator.Value().([]byte)
 		validator, err := k.GetValidator(ctx, address)
 		if err != nil {
 			addr, err := k.validatorAddressCodec.BytesToString(address)
@@ -127,7 +127,7 @@ func (k Keeper) GetAllSDKDelegations(ctx context.Context) (delegations []types.D
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
-		delegation, err := types.UnmarshalDelegation(k.cdc, iterator.Value())
+		delegation, err := types.UnmarshalDelegation(k.cdc, iterator.Value().([]byte))
 		if err != nil {
 			return delegations, err
 		}

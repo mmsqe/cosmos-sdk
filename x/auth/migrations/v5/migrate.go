@@ -25,7 +25,7 @@ func Migrate(ctx context.Context, storeService storetypes.KVStoreService, sequen
 
 	// get old value
 	v := new(types.UInt64Value)
-	err = v.Unmarshal(b)
+	err = v.Unmarshal(b.([]byte))
 	if err != nil {
 		return err
 	}

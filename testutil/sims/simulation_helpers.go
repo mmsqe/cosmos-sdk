@@ -91,14 +91,14 @@ func DiffKVStores(a, b storetypes.KVStore, prefixesToSkip [][]byte) (diffA, diff
 	kvAs := make([]kv.Pair, 0)
 	go func() {
 		defer wg.Done()
-		kvAs = getKVPairs(iterA, prefixesToSkip)
+		kvAs = getKVPairs(&storetypes.AnyIterator{iterA}, prefixesToSkip)
 	}()
 
 	wg.Add(1)
 	kvBs := make([]kv.Pair, 0)
 	go func() {
 		defer wg.Done()
-		kvBs = getKVPairs(iterB, prefixesToSkip)
+		kvBs = getKVPairs(&storetypes.AnyIterator{iterB}, prefixesToSkip)
 	}()
 
 	wg.Wait()
@@ -170,7 +170,7 @@ func getKVPairs(iter corestore.Iterator, prefixesToSkip [][]byte) (kvs []kv.Pair
 		}
 
 		if !skip {
-			kvs = append(kvs, kv.Pair{Key: key, Value: value})
+			kvs = append(kvs, kv.Pair{Key: key, Value: value.([]byte)})
 		}
 
 		iter.Next()

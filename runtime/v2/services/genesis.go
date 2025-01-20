@@ -112,7 +112,7 @@ type readonlyKVStore struct {
 	store.Reader
 }
 
-func (r readonlyKVStore) Set(key, value []byte) error {
+func (r readonlyKVStore) Set(key []byte, value any) error {
 	return errors.New("tried to call Set on a readonly store")
 }
 

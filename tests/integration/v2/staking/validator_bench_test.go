@@ -134,7 +134,7 @@ func updateValidatorDelegationsLegacy(f *fixture, existingValAddr, newValAddr sd
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
-		delegation := types.MustUnmarshalDelegation(cdc, iterator.Value())
+		delegation := types.MustUnmarshalDelegation(cdc, iterator.Value().([]byte))
 		valAddr, err := k.ValidatorAddressCodec().StringToBytes(delegation.GetValidatorAddr())
 		if err != nil {
 			panic(err)

@@ -5,8 +5,8 @@ import (
 
 	"github.com/cosmos/gogoproto/proto"
 
+	corestore "cosmossdk.io/core/store"
 	"cosmossdk.io/store/types"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 )
 
@@ -46,7 +46,7 @@ func FilteredPaginate(
 				break
 			}
 
-			numHits, err = processResult(iterator, numHits, onResult, accumulateFn)
+			numHits, err = processResult(&corestore.BytesIterator{iterator}, numHits, onResult, accumulateFn)
 			if err != nil {
 				return nil, err
 			}
@@ -61,7 +61,7 @@ func FilteredPaginate(
 	accumulateFn := func(numHits uint64) bool { return numHits >= pageRequest.Offset && numHits < end }
 
 	for ; iterator.Valid(); iterator.Next() {
-		numHits, err = processResult(iterator, numHits, onResult, accumulateFn)
+		numHits, err = processResult(&corestore.BytesIterator{iterator}, numHits, onResult, accumulateFn)
 		if err != nil {
 			return nil, err
 		}
@@ -170,8 +170,7 @@ func GenericFilteredPaginate[T, F proto.Message](
 				nextKey = iterator.Key()
 				break
 			}
-
-			results, numHits, err = genericProcessResult(iterator, numHits, onResult, accumulateFn, constructor, cdc, results)
+			results, numHits, err = genericProcessResult(&corestore.BytesIterator{iterator}, numHits, onResult, accumulateFn, constructor, cdc, results)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -186,7 +185,7 @@ func GenericFilteredPaginate[T, F proto.Message](
 	accumulateFn := func(numHits uint64) bool { return numHits >= pageRequest.Offset && numHits < end }
 
 	for ; iterator.Valid(); iterator.Next() {
-		results, numHits, err = genericProcessResult(iterator, numHits, onResult, accumulateFn, constructor, cdc, results)
+		results, numHits, err = genericProcessResult(&corestore.BytesIterator{iterator}, numHits, onResult, accumulateFn, constructor, cdc, results)
 		if err != nil {
 			return nil, nil, err
 		}

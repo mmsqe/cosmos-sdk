@@ -50,7 +50,7 @@ func (t *Tree) GetProof(version uint64, key []byte) (*ics23.CommitmentProof, err
 	return nil, nil
 }
 
-func (t *Tree) Get(version uint64, key []byte) ([]byte, error) {
+func (t *Tree) Get(version uint64, key []byte) (any, error) {
 	return t.MemDB.Get(key)
 }
 

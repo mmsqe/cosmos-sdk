@@ -115,7 +115,6 @@ func TestFundsMigration(t *testing.T) {
 	bankKeeper := bankkeeper.NewBaseKeeper(
 		runtime.NewEnvironment(runtime.NewKVStoreService(keys[banktypes.StoreKey]), log.NewNopLogger()),
 		encCfg.Codec,
-		okeys[banktypes.ObjectStoreKey],
 		accountKeeper,
 		map[string]bool{},
 		authority,

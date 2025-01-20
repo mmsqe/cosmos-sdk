@@ -9,13 +9,13 @@ import (
 )
 
 func TestBranch(t *testing.T) {
-	set := func(s interface{ Set([]byte, []byte) error }, key, value string) {
+	set := func(s interface{ Set([]byte, any) error }, key, value string) {
 		err := s.Set([]byte(key), []byte(value))
 		if err != nil {
 			t.Errorf("Error setting value: %v", err)
 		}
 	}
-	get := func(s interface{ Get([]byte) ([]byte, error) }, key, wantValue string) {
+	get := func(s interface{ Get([]byte) (any, error) }, key, wantValue string) {
 		value, err := s.Get([]byte(key))
 		if err != nil {
 			t.Errorf("Error getting value: %v", err)
@@ -25,7 +25,7 @@ func TestBranch(t *testing.T) {
 				t.Errorf("Expected nil value, got: %v", value)
 			}
 		} else {
-			if string(value) != wantValue {
+			if string(value.([]byte)) != wantValue {
 				t.Errorf("Expected value: %s, got: %s", wantValue, value)
 			}
 		}
@@ -60,7 +60,7 @@ func TestBranch(t *testing.T) {
 			if !iter.Valid() {
 				t.Errorf("Expected iterator to be valid")
 			}
-			gotKey, gotValue := string(iter.Key()), string(iter.Value())
+			gotKey, gotValue := string(iter.Key()), string(iter.Value().([]byte))
 			wantKey, wantValue := wantPairs[i][0], wantPairs[i][1]
 			if wantKey != gotKey {
 				t.Errorf("Expected key: %s, got: %s", wantKey, gotKey)
@@ -129,7 +129,7 @@ type memStore struct {
 	t *btree.BTreeG[item]
 }
 
-func (m memStore) Set(key, value []byte) error {
+func (m memStore) Set(key []byte, value any) error {
 	m.t.Set(item{key: key, value: value})
 	return nil
 }
@@ -150,7 +150,7 @@ func (m memStore) Has(key []byte) (bool, error) {
 	return found, nil
 }
 
-func (m memStore) Get(bytes []byte) ([]byte, error) {
+func (m memStore) Get(bytes []byte) (any, error) {
 	v, found := m.t.Get(item{key: bytes})
 	if !found {
 		return nil, nil

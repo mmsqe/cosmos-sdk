@@ -15,6 +15,11 @@ type KVStoreService interface {
 // where an application must supply a custom stateful backend.
 type KVStoreServiceFactory func([]byte) KVStoreService
 
+type ObjectStoreService interface {
+	// ObjectStore retrieves the object store from the context.
+	OpenObjectStore(context.Context) KVStore
+}
+
 // MemoryStoreService represents a unique, non-forgeable handle to a memory-backed
 // KVStore. It should be provided as a module-scoped dependency by the runtime
 // module being used to build the app.

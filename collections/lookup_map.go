@@ -67,7 +67,7 @@ func (m LookupMap[K, V]) Get(ctx context.Context, key K) (v V, err error) {
 		return v, fmt.Errorf("%w: key '%s' of type %s", ErrNotFound, m.kc.Stringify(key), m.vc.ValueType())
 	}
 
-	v, err = m.vc.Decode(valueBytes)
+	v, err = m.vc.Decode(valueBytes.([]byte))
 	if err != nil {
 		return v, fmt.Errorf("%w: value decode: %w", ErrEncoding, err)
 	}

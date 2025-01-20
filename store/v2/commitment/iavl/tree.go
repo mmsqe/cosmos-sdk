@@ -41,8 +41,8 @@ func (t *IavlTree) Remove(key []byte) error {
 }
 
 // Set sets the given key-value pair in the tree.
-func (t *IavlTree) Set(key, value []byte) error {
-	_, err := t.tree.Set(key, value)
+func (t *IavlTree) Set(key []byte, value any) error {
+	_, err := t.tree.Set(key, value.([]byte))
 	return err
 }
 

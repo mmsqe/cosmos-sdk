@@ -26,7 +26,7 @@ func (m memState) Has(key []byte) (bool, error) {
 	return v != nil, err
 }
 
-func (m memState) Get(bytes []byte) ([]byte, error) {
+func (m memState) Get(bytes []byte) (any, error) {
 	key := append(m.address, bytes...)
 	return m.kv[string(key)], nil
 }
