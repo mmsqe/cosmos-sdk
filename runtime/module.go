@@ -103,7 +103,6 @@ func init() {
 			ProvideGenesisTxHandler,
 			ProvideEnvironment,
 			ProvideTransientStoreService,
-			ProvideObjectStoreService,
 			ProvideModuleManager,
 			ProvideCometService,
 			ProvideModuleConfigMaps,
@@ -306,11 +305,6 @@ func ProvideTransientStoreService(
 	}
 
 	return transientStoreService{key: storeKey}
-}
-
-func ProvideObjectStoreService(config *runtimev1alpha1.Module, key depinject.ModuleKey, app *AppBuilder) store.ObjectStoreService {
-	storeKey := ProvideObjectStoreKey(config, key, app)
-	return objectStoreService{key: storeKey}
 }
 
 func ProvideCometService() comet.Service {
