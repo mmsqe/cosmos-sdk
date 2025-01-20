@@ -157,5 +157,5 @@ replace (
 	cosmossdk.io/x/bank => ../../x/bank
 	cosmossdk.io/x/staking => ../../x/staking
 	github.com/cosmos/cosmos-sdk => ../../
-	github.com/cosmos/iavl => ../../../iavl
+	github.com/cosmos/iavl => github.com/mmsqe/iavl v0.19.2-0.20250120073243-f6dc6e53a8df
 )

@@ -309,6 +309,6 @@ replace (
 	cosmossdk.io/server/v2/stf => ../../server/v2/stf
 	cosmossdk.io/store => ../../store
 	cosmossdk.io/store/v2 => ../../store/v2
-	github.com/cosmos/iavl => ../../../iavl
-	github.com/cosmos/iavl/v2 => ../../../test/miavl
+	github.com/cosmos/iavl => github.com/mmsqe/iavl v0.19.2-0.20250120073243-f6dc6e53a8df
+	github.com/cosmos/iavl/v2 => github.com/mmsqe/iavl/v2 v2.0.0-20250120073306-4953c55e361a
 )

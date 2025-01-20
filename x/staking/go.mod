@@ -178,5 +178,5 @@ replace (
 	cosmossdk.io/core/testing => ../../core/testing
 	cosmossdk.io/store => ../../store
 	cosmossdk.io/x/bank => ../bank
-	github.com/cosmos/iavl => ../../../iavl
+	github.com/cosmos/iavl => github.com/mmsqe/iavl v0.19.2-0.20250120073243-f6dc6e53a8df
 )

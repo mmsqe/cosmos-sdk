@@ -160,6 +160,10 @@ github.com/mattn/go-isatty v0.0.19/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
+github.com/mmsqe/iavl v0.19.2-0.20250120073243-f6dc6e53a8df h1:FfT4CAnYfTmblM+oNJZuwMBPTWBHVyC5hHs7T66jJ2A=
+github.com/mmsqe/iavl v0.19.2-0.20250120073243-f6dc6e53a8df/go.mod h1:DxJ6l0HDupQEwiK8Zjw1KtjIN5OwT7CAiD0TTvmxMGE=
+github.com/mmsqe/iavl/v2 v2.0.0-20250120073306-4953c55e361a h1:WbtsS2WOOeVlv2xGcwscKZOelCQFFbh19dE15rLRuyk=
+github.com/mmsqe/iavl/v2 v2.0.0-20250120073306-4953c55e361a/go.mod h1:7RSm0aeApe3S1x4TrLffvUL6pjOtMYV4glYnpAhr2lw=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
