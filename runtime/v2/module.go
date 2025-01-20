@@ -195,6 +195,7 @@ func ProvideKVService(
 	}
 
 	storeBuilder.RegisterKey(kvStoreKey)
+	storeBuilder.RegisterKey(fmt.Sprintf("obj:%s", kvStoreKey))
 	return kvFactory([]byte(kvStoreKey)), stf.NewMemoryStoreService([]byte(fmt.Sprintf("memory:%s", kvStoreKey))), stf.NewObjectStoreService([]byte(fmt.Sprintf("obj:%s", kvStoreKey)))
 }
 
