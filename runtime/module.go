@@ -197,6 +197,7 @@ func ProvideKVStoreKey(
 	key depinject.ModuleKey,
 	app *AppBuilder,
 ) *storetypes.KVStoreKey {
+	fmt.Println("mm-ProvideKVStoreKey", key)
 	if slices.Contains(config.SkipStoreKeys, key.Name()) {
 		return nil
 	}
@@ -220,6 +221,7 @@ func ProvideTransientStoreKey(
 	key depinject.ModuleKey,
 	app *AppBuilder,
 ) *storetypes.TransientStoreKey {
+	fmt.Println("mm-ProvideTransientStoreKey", key)
 	if slices.Contains(config.SkipStoreKeys, key.Name()) {
 		return nil
 	}
@@ -234,6 +236,7 @@ func ProvideMemoryStoreKey(
 	key depinject.ModuleKey,
 	app *AppBuilder,
 ) *storetypes.MemoryStoreKey {
+	fmt.Println("mm-ProvideMemoryStoreKey", key)
 	if slices.Contains(config.SkipStoreKeys, key.Name()) {
 		return nil
 	}
@@ -244,6 +247,7 @@ func ProvideMemoryStoreKey(
 }
 
 func ProvideObjectStoreKey(config *runtimev1alpha1.Module, key depinject.ModuleKey, app *AppBuilder) *storetypes.ObjectStoreKey {
+	fmt.Println("mm-ProvideObjectStoreKey", key)
 	if slices.Contains(config.SkipStoreKeys, key.Name()) {
 		return nil
 	}
@@ -254,10 +258,12 @@ func ProvideObjectStoreKey(config *runtimev1alpha1.Module, key depinject.ModuleK
 }
 
 func ProvideModuleManager(modules map[string]appmodule.AppModule) *module.Manager {
+	fmt.Println("mm-ProvideModuleManager", modules)
 	return module.NewManagerFromMap(modules)
 }
 
 func ProvideGenesisTxHandler(appBuilder *AppBuilder) genutil.TxHandler {
+	fmt.Println("mm-ProvideGenesisTxHandler")
 	return appBuilder.app
 }
 
@@ -269,6 +275,7 @@ func ProvideEnvironment(
 	msgServiceRouter *baseapp.MsgServiceRouter,
 	queryServiceRouter *baseapp.GRPCQueryRouter,
 ) (store.KVStoreService, store.MemoryStoreService, store.ObjectStoreService, appmodule.Environment) {
+	fmt.Println("mm-ProvideEnvironment", key)
 	var (
 		kvService    store.KVStoreService     = failingStoreService{}
 		memKvService store.MemoryStoreService = failingStoreService{}
@@ -299,6 +306,7 @@ func ProvideTransientStoreService(
 	key depinject.ModuleKey,
 	app *AppBuilder,
 ) store.TransientStoreService {
+	fmt.Println("mm-ProvideTransientStoreService", key)
 	storeKey := ProvideTransientStoreKey(config, key, app)
 	if storeKey == nil {
 		return failingStoreService{}
@@ -308,11 +316,13 @@ func ProvideTransientStoreService(
 }
 
 func ProvideCometService() comet.Service {
+	fmt.Println("mm-ProvideCometService")
 	return NewContextAwareCometInfoService()
 }
 
 func ProvideKVStoreFactory(app *AppBuilder) store.KVStoreServiceFactory {
 	return func(key []byte) store.KVStoreService {
+		fmt.Println("mm-ProvideKVStoreFactory", string(key))
 		sk := storetypes.NewKVStoreKey(string(key))
 		registerStoreKey(app, sk)
 		return kvStoreService{key: sk}

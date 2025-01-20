@@ -88,6 +88,7 @@ func (k BaseSendKeeper) SendCoinsFromVirtual(ctx context.Context, fromAddr, toAd
 func (k BaseSendKeeper) addVirtualCoins(ctx context.Context, addr sdk.AccAddress, amt sdk.Coins) error {
 	key := make([]byte, len(addr)+8)
 	copy(key, addr)
+	fmt.Println("mm-ObjStoreService", k.ObjStoreService == nil)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	binary.BigEndian.PutUint64(key[len(addr):], uint64(sdkCtx.TxIndex()))
 
@@ -108,6 +109,7 @@ func (k BaseSendKeeper) subVirtualCoins(ctx context.Context, addr sdk.AccAddress
 	key := make([]byte, len(addr)+8)
 	copy(key, addr)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	fmt.Printf("mm-subVirtualCoins-sdkCtx: %+v\n", sdkCtx.TxIndex())
 	binary.BigEndian.PutUint64(key[len(addr):], uint64(sdkCtx.TxIndex()))
 
 	store := k.ObjStoreService.OpenObjectStore(ctx)
@@ -144,6 +146,7 @@ func (k BaseSendKeeper) subVirtualCoins(ctx context.Context, addr sdk.AccAddress
 // should be called at end blocker.
 func (k BaseSendKeeper) CreditVirtualAccounts(ctx context.Context) error {
 	store := k.ObjStoreService.OpenObjectStore(ctx)
+	fmt.Println("mm-store", store == nil)
 
 	var toAddr sdk.AccAddress
 	sum := sdk.NewMapCoins(nil)

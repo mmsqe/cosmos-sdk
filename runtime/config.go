@@ -1,6 +1,8 @@
 package runtime
 
 import (
+	"fmt"
+
 	"cosmossdk.io/core/server"
 	"cosmossdk.io/depinject"
 )
@@ -19,6 +21,7 @@ type ModuleConfigMapsInput struct {
 // The module config map is a map of flag to value.
 func ProvideModuleConfigMaps(in ModuleConfigMapsInput) ModuleConfigMaps {
 	moduleConfigMaps := make(ModuleConfigMaps)
+	fmt.Println("mm-ProvideModuleConfigMaps", in.DynamicConfig == nil)
 	if in.DynamicConfig == nil {
 		return moduleConfigMaps
 	}
@@ -35,6 +38,7 @@ func ProvideModuleConfigMaps(in ModuleConfigMapsInput) ModuleConfigMaps {
 			}
 		}
 	}
+	fmt.Println("mm-ProvideModuleConfigMaps", moduleConfigMaps)
 	return moduleConfigMaps
 }
 
@@ -42,5 +46,6 @@ func ProvideModuleScopedConfigMap(
 	key depinject.ModuleKey,
 	moduleConfigs ModuleConfigMaps,
 ) server.ConfigMap {
+	fmt.Println("mm-ProvideModuleScopedConfigMap", key)
 	return moduleConfigs[key.Name()]
 }

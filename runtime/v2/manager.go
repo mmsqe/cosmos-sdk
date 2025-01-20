@@ -298,6 +298,7 @@ func (m *MM[T]) EndBlock() (
 	endBlockFunc = func(ctx context.Context) error {
 		for _, moduleName := range m.config.EndBlockers {
 			if module, ok := m.modules[moduleName].(appmodulev2.HasEndBlocker); ok {
+				fmt.Printf("mm-ctx: %T, %+v\n", ctx, moduleName)
 				err := module.EndBlock(ctx)
 				if err != nil {
 					return fmt.Errorf("failed to run endblock for %s: %w", moduleName, err)
