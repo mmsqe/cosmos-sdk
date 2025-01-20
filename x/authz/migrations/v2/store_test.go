@@ -106,7 +106,8 @@ func TestMigration(t *testing.T) {
 
 	storeService := runtime.NewKVStoreService(authzKey)
 	store := storeService.OpenKVStore(ctx)
-	env := runtime.NewEnvironment(storeService, coretesting.NewNopLogger())
+	objService := runtime.NewObjectStoreService(storetypes.NewObjectStoreKey(banktypes.ObjectStoreKey))
+	env := runtime.NewEnvironment(storeService, coretesting.NewNopLogger(), runtime.EnvWithObjStoreService(objService))
 
 	for _, g := range grants {
 		grant := g.authorization()

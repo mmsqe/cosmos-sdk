@@ -30,8 +30,8 @@ func TestBankStateCompatibility(t *testing.T) {
 	testCtx := testutil.DefaultContextWithObjectStore(t, key, storetypes.NewTransientStoreKey("transient_test"), okey)
 	ctx := testCtx.Ctx.WithHeaderInfo(header.Info{Time: time.Now()})
 	encCfg := moduletestutil.MakeTestEncodingConfig(codectestutil.CodecOptions{})
-
-	env := runtime.NewEnvironment(runtime.NewKVStoreService(key), coretesting.NewNopLogger())
+	objService := runtime.NewObjectStoreService(okey)
+	env := runtime.NewEnvironment(runtime.NewKVStoreService(key), coretesting.NewNopLogger(), runtime.EnvWithObjStoreService(objService))
 	ac := codectestutil.CodecOptions{}.GetAddressCodec()
 	// gomock initializations
 	ctrl := gomock.NewController(t)
