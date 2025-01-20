@@ -50,6 +50,8 @@ require (
 
 require github.com/cosmos/iavl/v2 v2.0.0-alpha.4 // indirect
 
+require cosmossdk.io/store v1.10.0-rc.1.0.20241218084712-ca559989da43 // indirect
+
 require (
 	buf.build/gen/go/cometbft/cometbft/protocolbuffers/go v1.36.1-20241120201313-68e42a58b301.1 // indirect
 	buf.build/gen/go/cosmos/gogo-proto/protocolbuffers/go v1.36.1-20240130113600-88ef6483f90f.1 // indirect
@@ -66,7 +68,6 @@ require (
 	cosmossdk.io/schema v1.0.0 // indirect
 	cosmossdk.io/server/v2/appmanager v1.0.0-beta.1 // indirect
 	cosmossdk.io/server/v2/stf v1.0.0-beta.1 // indirect
-	cosmossdk.io/store v1.10.0-rc.1.0.20241218084712-ca559989da43 // indirect
 	cosmossdk.io/x/tx v1.0.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4 // indirect
@@ -297,6 +298,9 @@ replace (
 
 // server v2 integration
 replace (
+	cosmossdk.io/collections => ../../collections
+	cosmossdk.io/core => ../../core
+	cosmossdk.io/core/testing => ../../core/testing
 	cosmossdk.io/indexer/postgres => ../../indexer/postgres
 	cosmossdk.io/runtime/v2 => ../../runtime/v2
 	cosmossdk.io/server/v2 => ../../server/v2
@@ -305,4 +309,6 @@ replace (
 	cosmossdk.io/server/v2/stf => ../../server/v2/stf
 	cosmossdk.io/store => ../../store
 	cosmossdk.io/store/v2 => ../../store/v2
+	github.com/cosmos/iavl => ../../../iavl
+	github.com/cosmos/iavl/v2 => ../../../test/miavl
 )

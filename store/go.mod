@@ -3,7 +3,7 @@ module cosmossdk.io/store
 go 1.23.4
 
 require (
-	cosmossdk.io/core v1.0.0-alpha.6
+	cosmossdk.io/core v1.0.0
 	cosmossdk.io/core/testing v0.0.1
 	cosmossdk.io/errors v1.0.1
 	cosmossdk.io/log v1.5.0
@@ -83,4 +83,10 @@ require (
 	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241202173237-19429a94021a // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
+
+replace (
+	cosmossdk.io/core => ../core
+	cosmossdk.io/core/testing => ../core/testing
+	github.com/cosmos/iavl => ../../iavl
 )

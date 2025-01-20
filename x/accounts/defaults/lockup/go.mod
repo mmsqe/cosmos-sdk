@@ -19,6 +19,7 @@ require (
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/cockroachdb/apd/v3 v3.2.1 // indirect
+	github.com/cosmos/cosmos-db v1.1.1 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.0.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
@@ -155,9 +156,13 @@ require (
 replace github.com/cosmos/cosmos-sdk => ../../../../.
 
 replace (
+	cosmossdk.io/collections => ../../../../collections
+	cosmossdk.io/core => ../../../../core
+	cosmossdk.io/core/testing => ../../../../core/testing
 	cosmossdk.io/store => ../../../../store
 	cosmossdk.io/x/accounts => ../../.
 	cosmossdk.io/x/bank => ../../../bank
 	cosmossdk.io/x/distribution => ../../../distribution
 	cosmossdk.io/x/staking => ../../../staking
+	github.com/cosmos/iavl => ../../../../../iavl
 )

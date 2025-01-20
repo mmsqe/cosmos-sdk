@@ -72,6 +72,7 @@ require (
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/cometbft/cometbft-db v1.0.1 // indirect
 	github.com/cosmos/btcutil v1.0.5 // indirect
+	github.com/cosmos/cosmos-db v1.1.1 // indirect
 	github.com/cosmos/cosmos-proto v1.0.0-beta.5 // indirect
 	github.com/cosmos/go-bip39 v1.0.0 // indirect
 	github.com/cosmos/iavl v1.3.5 // indirect
@@ -186,4 +187,11 @@ require (
 )
 
 // TODO remove post spinning out all modules
-replace cosmossdk.io/store => ../../../store
+replace (
+	cosmossdk.io/collections => ../../../collections
+	cosmossdk.io/core => ../../../core
+	cosmossdk.io/core/testing => ../../../core/testing
+	cosmossdk.io/store => ../../../store
+	github.com/cosmos/iavl => ../../../../iavl
+	github.com/cosmos/iavl/v2 => ../../../../test/miavl
+)

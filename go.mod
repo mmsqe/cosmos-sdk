@@ -126,6 +126,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oasisprotocol/curve25519-voi v0.0.0-20230904125328-1f23a7beb09a // indirect
 	github.com/oklog/run v1.1.0 // indirect
+	github.com/onsi/ginkgo v1.16.4 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -176,9 +177,13 @@ require (
 
 // TODO remove after all modules have their own go.mods
 replace (
+	cosmossdk.io/collections => ./collections
+	cosmossdk.io/core => ./core
+	cosmossdk.io/core/testing => ./core/testing
 	cosmossdk.io/store => ./store
 	cosmossdk.io/x/bank => ./x/bank
 	cosmossdk.io/x/staking => ./x/staking
+	github.com/cosmos/iavl => ../iavl
 )
 
 // Below are the long-lived replace of the Cosmos SDK
