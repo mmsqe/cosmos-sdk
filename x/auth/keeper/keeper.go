@@ -17,6 +17,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	gogotypes "github.com/cosmos/gogoproto/types"
 )
 
 // AccountKeeperI is the interface contract that x/auth's keeper implements.
@@ -179,12 +180,31 @@ func (ak AccountKeeper) GetSequence(ctx context.Context, addr sdk.AccAddress) (u
 	return acc.GetSequence(), nil
 }
 
+var LegacyGlobalAccountNumberKey = []byte("globalAccountNumber")
+
 // NextAccountNumber returns and increments the global account number counter.
 // If the global account number is not set, it initializes it with value 0.
 func (ak AccountKeeper) NextAccountNumber(ctx context.Context) uint64 {
 	n, err := ak.AccountNumber.Next(ctx)
 	if err != nil {
 		panic(err)
+	}
+	if n == 0 {
+		store := ak.storeService.OpenKVStore(ctx)
+		b, err := store.Get(LegacyGlobalAccountNumberKey)
+		if err != nil {
+			panic(err)
+		}
+		v := new(gogotypes.UInt64Value)
+		err = v.Unmarshal(b)
+		if err != nil {
+			panic(err)
+		}
+		n = v.Value
+		err = ak.AccountNumber.Set(ctx, v.Value+1)
+		if err != nil {
+			panic(err)
+		}
 	}
 	return n
 }
