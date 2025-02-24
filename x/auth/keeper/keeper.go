@@ -202,7 +202,9 @@ func (ak AccountKeeper) NextAccountNumberLegacy(ctx context.Context) (uint64, er
 func (ak AccountKeeper) NextAccountNumber(ctx context.Context) uint64 {
 	n, err := collections.Item[uint64](ak.AccountNumber).Get(ctx)
 	if err == nil {
-		ak.AccountNumber.Set(ctx, n+1)
+		if err := ak.AccountNumber.Set(ctx, n+1); err != nil {
+			panic(err)
+		}
 		return n
 	}
 
