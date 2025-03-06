@@ -272,12 +272,14 @@ func (k BaseSendKeeper) subUnlockedCoins(ctx context.Context, addr sdk.AccAddres
 	}
 
 	lockedCoins := k.LockedCoins(ctx, addr)
+	height := sdk.UnwrapSDKContext(ctx).BlockHeight()
 
 	for _, coin := range amt {
 		balance := k.GetBalance(ctx, addr, coin.Denom)
 		locked := sdk.NewCoin(coin.Denom, lockedCoins.AmountOf(coin.Denom))
 
 		spendable, hasNeg := sdk.Coins{balance}.SafeSub(locked)
+		fmt.Println("mm-subUnlockedCoins", height, "addr:", addr.String(), "amt:", amt, "balance:", balance, "locked:", locked, "spendable:", spendable)
 		if hasNeg {
 			return errorsmod.Wrapf(sdkerrors.ErrInsufficientFunds,
 				"locked amount exceeds account balance funds: %s > %s", locked, balance)
