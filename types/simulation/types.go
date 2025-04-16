@@ -1,6 +1,7 @@
 package simulation
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -177,6 +178,8 @@ type SelectOpFn func(r *rand.Rand) Operation
 type AppStateFn func(r *rand.Rand, accs []Account, config Config) (
 	appState json.RawMessage, accounts []Account, chainId string, genesisTimestamp time.Time,
 )
+
+type EndBlockFns func(ctx context.Context) error
 
 // RandomAccountFn returns a slice of n random simulation accounts
 type RandomAccountFn func(r *rand.Rand, n int) []Account

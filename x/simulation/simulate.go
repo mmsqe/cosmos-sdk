@@ -64,6 +64,7 @@ func SimulateFromSeed(
 	blockedAddrs map[string]bool,
 	config simulation.Config,
 	cdc codec.JSONCodec,
+	endBlockFns ...simulation.EndBlockFns,
 ) (stopEarly bool, exportedParams Params, err error) {
 	// in case we have to end early, don't os.Exit so that we can run cleanup code.
 	testingMode, _, b := getTestingMode(tb)
@@ -230,6 +231,11 @@ func SimulateFromSeed(
 		logWriter.AddEntry(EndBlockEntry(blockHeight))
 
 		if config.Commit {
+			for _, endBlockFn := range endBlockFns {
+				if err := endBlockFn(ctx); err != nil {
+					return params, accs, fmt.Errorf("endBlockFn failed at height %d: %w", blockHeight, err)
+				}
+			}
 			app.SimWriteState()
 			app.Commit()
 		}
