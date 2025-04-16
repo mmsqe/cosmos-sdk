@@ -233,7 +233,7 @@ func SimulateFromSeed(
 		if config.Commit {
 			for _, endBlockFn := range endBlockFns {
 				if err := endBlockFn(ctx); err != nil {
-					return params, accs, fmt.Errorf("endBlockFn failed at height %d: %w", blockHeight, err)
+					return true, params, fmt.Errorf("endBlockFn failed at height %d: %w", blockHeight, err)
 				}
 			}
 			app.SimWriteState()
