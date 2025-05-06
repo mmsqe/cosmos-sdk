@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"sigs.k8s.io/yaml"
@@ -95,6 +96,7 @@ func (s *decimalTestSuite) TestNewDecFromStr() {
 		{"8888888888888888888888888888888888888888888888888888888888888888888844444440", false, sdk.NewDecFromBigInt(largerBigInt)},
 		{"33499189745056880149688856635597007162669032647290798121690100488888732861290.034376435130433535", false, sdk.NewDecFromBigIntWithPrec(largestBigInt, 18)},
 		{"133499189745056880149688856635597007162669032647290798121690100488888732861291", true, sdk.Dec{}},
+		{"115792089237316195423570985008687907853269984665640564039457584007913129639936", true, sdk.Dec{}}, // 2^256
 	}
 
 	for tcIndex, tc := range tests {
@@ -103,7 +105,7 @@ func (s *decimalTestSuite) TestNewDecFromStr() {
 			s.Require().NotNil(err, "error expected, decimalStr %v, tc %v", tc.decimalStr, tcIndex)
 		} else {
 			s.Require().Nil(err, "unexpected error, decimalStr %v, tc %v", tc.decimalStr, tcIndex)
-			s.Require().True(res.Equal(tc.exp), "equality was incorrect, res %v, exp %v, tc %v", res, tc.exp, tcIndex)
+			s.Require().True(res.Equal(tc.exp), "equality was incorrect, res %v, expTruncated %v, tc %v", res, tc.exp, tcIndex)
 		}
 
 		// negative tc
@@ -113,7 +115,7 @@ func (s *decimalTestSuite) TestNewDecFromStr() {
 		} else {
 			s.Require().Nil(err, "unexpected error, decimalStr %v, tc %v", tc.decimalStr, tcIndex)
 			exp := tc.exp.Mul(sdk.NewDec(-1))
-			s.Require().True(res.Equal(exp), "equality was incorrect, res %v, exp %v, tc %v", res, exp, tcIndex)
+			s.Require().True(res.Equal(exp), "equality was incorrect, res %v, expTruncated %v, tc %v", res, exp, tcIndex)
 		}
 	}
 }
@@ -220,68 +222,68 @@ func (s *decimalTestSuite) TestDecsEqual() {
 func (s *decimalTestSuite) TestArithmetic() {
 	tests := []struct {
 		d1, d2                                sdk.Dec
-		expMul, expMulTruncate                sdk.Dec
+		expMul, expMulTruncate, expMulRoundUp sdk.Dec
 		expQuo, expQuoRoundUp, expQuoTruncate sdk.Dec
 		expAdd, expSub                        sdk.Dec
 	}{
-		//  d1         d2         MUL    MulTruncate    QUO    QUORoundUp QUOTrunctate  ADD         SUB
-		{sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0)},
-		{sdk.NewDec(1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(1), sdk.NewDec(1)},
-		{sdk.NewDec(0), sdk.NewDec(1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(1), sdk.NewDec(-1)},
-		{sdk.NewDec(0), sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(-1), sdk.NewDec(1)},
-		{sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(-1), sdk.NewDec(-1)},
+		//  d1         d2         MUL    MulTruncate   MulRoundUp    QUO    QUORoundUp QUOTrunctate  ADD         SUB
+		{sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0)},
+		{sdk.NewDec(1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(1), sdk.NewDec(1)},
+		{sdk.NewDec(0), sdk.NewDec(1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(1), sdk.NewDec(-1)},
+		{sdk.NewDec(0), sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(-1), sdk.NewDec(1)},
+		{sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(-1), sdk.NewDec(-1)},
 
-		{sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(2), sdk.NewDec(0)},
-		{sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(-2), sdk.NewDec(0)},
-		{sdk.NewDec(1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(2)},
-		{sdk.NewDec(-1), sdk.NewDec(1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(-2)},
+		{sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(2), sdk.NewDec(0)},
+		{sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(-2), sdk.NewDec(0)},
+		{sdk.NewDec(1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(2)},
+		{sdk.NewDec(-1), sdk.NewDec(1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(-2)},
 
 		{
-			sdk.NewDec(3), sdk.NewDec(7), sdk.NewDec(21), sdk.NewDec(21),
+			sdk.NewDec(3), sdk.NewDec(7), sdk.NewDec(21), sdk.NewDec(21), sdk.NewDec(21),
 			sdk.NewDecWithPrec(428571428571428571, 18), sdk.NewDecWithPrec(428571428571428572, 18), sdk.NewDecWithPrec(428571428571428571, 18),
 			sdk.NewDec(10), sdk.NewDec(-4),
 		},
 		{
-			sdk.NewDec(2), sdk.NewDec(4), sdk.NewDec(8), sdk.NewDec(8), sdk.NewDecWithPrec(5, 1), sdk.NewDecWithPrec(5, 1), sdk.NewDecWithPrec(5, 1),
+			sdk.NewDec(2), sdk.NewDec(4), sdk.NewDec(8), sdk.NewDec(8), sdk.NewDec(8), sdk.NewDecWithPrec(5, 1), sdk.NewDecWithPrec(5, 1), sdk.NewDecWithPrec(5, 1),
 			sdk.NewDec(6), sdk.NewDec(-2),
 		},
 
-		{sdk.NewDec(100), sdk.NewDec(100), sdk.NewDec(10000), sdk.NewDec(10000), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(200), sdk.NewDec(0)},
+		{sdk.NewDec(100), sdk.NewDec(100), sdk.NewDec(10000), sdk.NewDec(10000), sdk.NewDec(10000), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(200), sdk.NewDec(0)},
 
 		{
-			sdk.NewDecWithPrec(15, 1), sdk.NewDecWithPrec(15, 1), sdk.NewDecWithPrec(225, 2), sdk.NewDecWithPrec(225, 2),
+			sdk.NewDecWithPrec(15, 1), sdk.NewDecWithPrec(15, 1), sdk.NewDecWithPrec(225, 2), sdk.NewDecWithPrec(225, 2), sdk.NewDecWithPrec(225, 2),
 			sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(3), sdk.NewDec(0),
 		},
 		{
-			sdk.NewDecWithPrec(3333, 4), sdk.NewDecWithPrec(333, 4), sdk.NewDecWithPrec(1109889, 8), sdk.NewDecWithPrec(1109889, 8),
+			sdk.NewDecWithPrec(3333, 4), sdk.NewDecWithPrec(333, 4), sdk.NewDecWithPrec(1109889, 8), sdk.NewDecWithPrec(1109889, 8), sdk.NewDecWithPrec(1109889, 8),
 			sdk.MustNewDecFromStr("10.009009009009009009"), sdk.MustNewDecFromStr("10.009009009009009010"), sdk.MustNewDecFromStr("10.009009009009009009"),
 			sdk.NewDecWithPrec(3666, 4), sdk.NewDecWithPrec(3, 1),
 		},
 	}
 
 	for tcIndex, tc := range tests {
-		tc := tc
+
 		resAdd := tc.d1.Add(tc.d2)
 		resSub := tc.d1.Sub(tc.d2)
 		resMul := tc.d1.Mul(tc.d2)
 		resMulTruncate := tc.d1.MulTruncate(tc.d2)
-		s.Require().True(tc.expAdd.Equal(resAdd), "exp %v, res %v, tc %d", tc.expAdd, resAdd, tcIndex)
-		s.Require().True(tc.expSub.Equal(resSub), "exp %v, res %v, tc %d", tc.expSub, resSub, tcIndex)
-		s.Require().True(tc.expMul.Equal(resMul), "exp %v, res %v, tc %d", tc.expMul, resMul, tcIndex)
-		s.Require().True(tc.expMulTruncate.Equal(resMulTruncate), "exp %v, res %v, tc %d", tc.expMulTruncate, resMulTruncate, tcIndex)
+		s.Require().True(tc.expAdd.Equal(resAdd), "expTruncated %v, res %v, tc %d", tc.expAdd, resAdd, tcIndex)
+		s.Require().True(tc.expSub.Equal(resSub), "expTruncated %v, res %v, tc %d", tc.expSub, resSub, tcIndex)
+		s.Require().True(tc.expMul.Equal(resMul), "expTruncated %v, res %v, tc %d", tc.expMul, resMul, tcIndex)
+		s.Require().True(tc.expMulTruncate.Equal(resMulTruncate), "expTruncated %v, res %v, tc %d", tc.expMulTruncate, resMulTruncate, tcIndex)
 
 		if tc.d2.IsZero() { // panic for divide by zero
 			s.Require().Panics(func() { tc.d1.Quo(tc.d2) })
 		} else {
 			resQuo := tc.d1.Quo(tc.d2)
-			s.Require().True(tc.expQuo.Equal(resQuo), "exp %v, res %v, tc %d", tc.expQuo.String(), resQuo.String(), tcIndex)
+			s.Require().True(tc.expQuo.Equal(resQuo), "expTruncated %v, res %v, tc %d", tc.expQuo.String(), resQuo.String(), tcIndex)
 
 			resQuoRoundUp := tc.d1.QuoRoundUp(tc.d2)
-			s.Require().True(tc.expQuoRoundUp.Equal(resQuoRoundUp), "exp %v, res %v, tc %d",
+			s.Require().True(tc.expQuoRoundUp.Equal(resQuoRoundUp), "expTruncated %v, res %v, tc %d",
 				tc.expQuoRoundUp.String(), resQuoRoundUp.String(), tcIndex)
 
 			resQuoTruncate := tc.d1.QuoTruncate(tc.d2)
-			s.Require().True(tc.expQuoTruncate.Equal(resQuoTruncate), "exp %v, res %v, tc %d",
+			s.Require().True(tc.expQuoTruncate.Equal(resQuoTruncate), "expTruncated %v, res %v, tc %d",
 				tc.expQuoTruncate.String(), resQuoTruncate.String(), tcIndex)
 		}
 	}
@@ -390,6 +392,15 @@ func (s *decimalTestSuite) TestDecCeil() {
 	}
 }
 
+func (s *decimalTestSuite) TestCeilOverflow() {
+	// (2^256 * 10^18 -1) / 10^18
+	d, err := sdk.NewDecFromStr("115792089237316195423570985008687907853269984665640564039457584007913129639935.999999999999999999")
+	s.Require().NoError(err)
+	s.Require().True(d.IsInValidRange())
+	// this call panics because the value is too large
+	s.Require().Panics(func() { d.Ceil() }, "Ceil should panic on overflow")
+}
+
 func (s *decimalTestSuite) TestPower() {
 	testCases := []struct {
 		input    sdk.Dec
@@ -423,6 +434,9 @@ func (s *decimalTestSuite) TestApproxRoot() {
 		root     uint64
 		expected sdk.Dec
 	}{
+		{sdk.NewDecFromInt(sdk.NewInt(2)), 0, sdk.OneDec()},                                    // 2 ^ 0 => 1.0
+		{sdk.NewDecWithPrec(4, 2), 0, sdk.OneDec()},                                            // 0.04 ^ 0 => 1.0
+		{sdk.NewDec(0), 1, sdk.NewDec(0)},                                                      // 0 ^ 1 => 0
 		{sdk.OneDec(), 10, sdk.OneDec()},                                                       // 1.0 ^ (0.1) => 1.0
 		{sdk.NewDecWithPrec(25, 2), 2, sdk.NewDecWithPrec(5, 1)},                               // 0.25 ^ (0.5) => 0.5
 		{sdk.NewDecWithPrec(4, 2), 2, sdk.NewDecWithPrec(2, 1)},                                // 0.04 ^ (0.5) => 0.2
@@ -452,12 +466,17 @@ func (s *decimalTestSuite) TestApproxSqrt() {
 		input    sdk.Dec
 		expected sdk.Dec
 	}{
-		{sdk.OneDec(), sdk.OneDec()},                                                    // 1.0 => 1.0
-		{sdk.NewDecWithPrec(25, 2), sdk.NewDecWithPrec(5, 1)},                           // 0.25 => 0.5
-		{sdk.NewDecWithPrec(4, 2), sdk.NewDecWithPrec(2, 1)},                            // 0.09 => 0.3
-		{sdk.NewDecFromInt(sdk.NewInt(9)), sdk.NewDecFromInt(sdk.NewInt(3))},            // 9 => 3
-		{sdk.NewDecFromInt(sdk.NewInt(-9)), sdk.NewDecFromInt(sdk.NewInt(-3))},          // -9 => -3
-		{sdk.NewDecFromInt(sdk.NewInt(2)), sdk.NewDecWithPrec(1414213562373095049, 18)}, // 2 => 1.414213562373095049
+		{sdk.OneDec(), sdk.OneDec()},                                 // 1.0 => 1.0
+		{sdk.NewDecWithPrec(25, 2), sdk.NewDecWithPrec(5, 1)},        // 0.25 => 0.5
+		{sdk.NewDecWithPrec(4, 2), sdk.NewDecWithPrec(2, 1)},         // 0.09 => 0.3
+		{sdk.NewDec(9), sdk.NewDecFromInt(sdk.NewInt(3))},            // 9 => 3
+		{sdk.NewDec(-9), sdk.NewDecFromInt(sdk.NewInt(-3))},          // -9 => -3
+		{sdk.NewDec(2), sdk.NewDecWithPrec(1414213562373095049, 18)}, // 2 => 1.414213562373095049
+		{ // 2^127 - 1 => 13043817825332782212.3495718062525083688 which rounds to 13043817825332782212.3495718062525083689
+			sdk.NewDec(2).Power(127).Sub(sdk.OneDec()),
+			sdk.MustNewDecFromStr("13043817825332782212.349571806252508369"),
+		},
+		{sdk.MustNewDecFromStr("1.000000011823380862"), sdk.MustNewDecFromStr("1.000000005911690414")},
 	}
 
 	for i, tc := range testCases {
@@ -611,11 +630,613 @@ func BenchmarkMarshalTo(b *testing.B) {
 		for _, bi := range bis {
 			if n, err := bi.in.MarshalTo(data); err != nil {
 				b.Fatal(err)
-			} else {
-				if !bytes.Equal(data[:n], bi.want) {
-					b.Fatalf("Mismatch\nGot:  % x\nWant: % x\n", data[:n], bi.want)
-				}
+			} else if !bytes.Equal(data[:n], bi.want) {
+				b.Fatalf("Mismatch\nGot:  % x\nWant: % x\n", data[:n], bi.want)
 			}
 		}
+	}
+}
+
+var sink interface{}
+
+func BenchmarkQuoMut(b *testing.B) {
+	b1 := sdk.NewDec(17e2 + 8371)
+	b2 := sdk.NewDec(4371)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		sink = b1.QuoMut(b2)
+	}
+
+	if sink == nil {
+		b.Fatal("Benchmark did not run")
+	}
+	sink = (interface{})(nil)
+}
+
+func BenchmarkQuoTruncateMut(b *testing.B) {
+	b1 := sdk.NewDec(17e2 + 8371)
+	baseArr := make([]sdk.Dec, b.N)
+	for i := 0; i < b.N; i++ {
+		baseArr[i] = b1.Clone()
+	}
+	b2 := sdk.NewDec(4371)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		sink = baseArr[i].QuoTruncateMut(b2)
+	}
+
+	if sink == nil {
+		b.Fatal("Benchmark did not run")
+	}
+	sink = (interface{})(nil)
+}
+
+func BenchmarkSqrtOnMersennePrime(b *testing.B) {
+	b1 := sdk.NewDec(2).Power(127).Sub(sdk.OneDec())
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		sink, _ = b1.ApproxSqrt()
+	}
+
+	if sink == nil {
+		b.Fatal("Benchmark did not run")
+	}
+	sink = (interface{})(nil)
+}
+
+func BenchmarkQuoRoundupMut(b *testing.B) {
+	b1 := sdk.NewDec(17e2 + 8371)
+	baseArr := make([]sdk.Dec, b.N)
+	for i := 0; i < b.N; i++ {
+		baseArr[i] = b1.Clone()
+	}
+	b2 := sdk.NewDec(4371)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		sink = baseArr[i].QuoRoundupMut(b2)
+	}
+
+	if sink == nil {
+		b.Fatal("Benchmark did not run")
+	}
+	sink = (interface{})(nil)
+}
+
+func TestNegativePrecisionPanic(t *testing.T) {
+	require.Panics(t, func() {
+		sdk.NewDecWithPrec(10, -1)
+	})
+}
+
+func TestQuoMut(t *testing.T) {
+	specs := map[string]struct {
+		dividend, divisor          sdk.Dec
+		expTruncated, expRoundedUp string
+		expPanic                   bool
+	}{
+		"0.0000000000000000001": {
+			dividend:     sdk.NewDecWithPrec(1, 18),
+			divisor:      sdk.MustNewDecFromStr("10"),
+			expRoundedUp: "0.000000000000000001",
+			expTruncated: "0.000000000000000000",
+		},
+		"0.0000000000000000002": {
+			dividend:     sdk.NewDecWithPrec(1, 18),
+			divisor:      sdk.MustNewDecFromStr("5"),
+			expRoundedUp: "0.000000000000000001",
+			expTruncated: "0.000000000000000000",
+		},
+		"0.0000000000000000003": {
+			dividend:     sdk.NewDecWithPrec(1, 18),
+			divisor:      sdk.MustNewDecFromStr("3.333333333333333"),
+			expRoundedUp: "0.000000000000000001",
+			expTruncated: "0.000000000000000000",
+		},
+		"0.0000000000000000004": {
+			dividend:     sdk.NewDecWithPrec(1, 18),
+			divisor:      sdk.MustNewDecFromStr("2.5"),
+			expRoundedUp: "0.000000000000000001",
+			expTruncated: "0.000000000000000000",
+		},
+		"0.0000000000000000005": {
+			dividend:     sdk.NewDecWithPrec(1, 18),
+			divisor:      sdk.MustNewDecFromStr("2"),
+			expRoundedUp: "0.000000000000000001",
+
+			expTruncated: "0.000000000000000000",
+		},
+		"0.0000000000000000006": {
+			dividend:     sdk.NewDecWithPrec(1, 18),
+			divisor:      sdk.MustNewDecFromStr("1.666666666666666666"),
+			expRoundedUp: "0.000000000000000001",
+
+			expTruncated: "0.000000000000000000",
+		},
+		"0.0000000000000000007": {
+			dividend:     sdk.NewDecWithPrec(1, 18),
+			divisor:      sdk.MustNewDecFromStr("1.428571428571429"),
+			expRoundedUp: "0.000000000000000001",
+
+			expTruncated: "0.000000000000000000",
+		},
+		"0.0000000000000000008": {
+			dividend:     sdk.NewDecWithPrec(1, 18),
+			divisor:      sdk.MustNewDecFromStr("1.25"),
+			expRoundedUp: "0.000000000000000001",
+
+			expTruncated: "0.000000000000000000",
+		},
+		"0.0000000000000000009": {
+			dividend:     sdk.NewDecWithPrec(1, 18),
+			divisor:      sdk.MustNewDecFromStr("1.111111111111111"),
+			expRoundedUp: "0.000000000000000001",
+
+			expTruncated: "0.000000000000000000",
+		},
+		"-0.0000000000000000001": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("10"),
+			expRoundedUp: "0.000000000000000000",
+			expTruncated: "0.000000000000000000",
+		},
+		"-0.0000000000000000002": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("5"),
+			expRoundedUp: "0.000000000000000000",
+			expTruncated: "0.000000000000000000",
+		},
+		"-0.0000000000000000003": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("3.333333333333333"),
+			expRoundedUp: "0.000000000000000000",
+			expTruncated: "0.000000000000000000",
+		},
+		"-0.0000000000000000004": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("2.5"),
+			expRoundedUp: "0.000000000000000000",
+			expTruncated: "0.000000000000000000",
+		},
+		"-0.0000000000000000005": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("2"),
+			expRoundedUp: "0.000000000000000000",
+			expTruncated: "0.000000000000000000",
+		},
+		"-0.0000000000000000006": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("1.666666666666666666"),
+			expRoundedUp: "0.000000000000000000",
+			expTruncated: "0.000000000000000000",
+		},
+		"-0.0000000000000000007": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("1.428571428571429"),
+			expRoundedUp: "0.000000000000000000",
+			expTruncated: "0.000000000000000000",
+		},
+		"-0.0000000000000000008": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("1.25"),
+			expRoundedUp: "0.000000000000000000",
+			expTruncated: "0.000000000000000000",
+		},
+		"-0.0000000000000000009": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("1.111111111111111"),
+			expRoundedUp: "0.000000000000000000",
+			expTruncated: "0.000000000000000000",
+		},
+		"--0.0000000000000000001": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("-10"),
+			expRoundedUp: "0.000000000000000001",
+			expTruncated: "0.000000000000000000",
+		},
+		"--0.0000000000000000002": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("-5"),
+			expRoundedUp: "0.000000000000000001",
+			expTruncated: "0.000000000000000000",
+		},
+		"--0.0000000000000000003": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("-3.333333333333333"),
+			expRoundedUp: "0.000000000000000001",
+			expTruncated: "0.000000000000000000",
+		},
+		"--0.0000000000000000004": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("-2.5"),
+			expRoundedUp: "0.000000000000000001",
+			expTruncated: "0.000000000000000000",
+		},
+		"--0.0000000000000000005": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("-2"),
+			expRoundedUp: "0.000000000000000001",
+			expTruncated: "0.000000000000000000",
+		},
+		"--0.0000000000000000006": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("-1.666666666666666666"),
+			expRoundedUp: "0.000000000000000001",
+			expTruncated: "0.000000000000000000",
+		},
+		"--0.0000000000000000007": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("-1.428571428571429"),
+			expRoundedUp: "0.000000000000000001",
+			expTruncated: "0.000000000000000000",
+		},
+		"--0.0000000000000000008": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("-1.25"),
+			expRoundedUp: "0.000000000000000001",
+			expTruncated: "0.000000000000000000",
+		},
+		"--0.0000000000000000009": {
+			dividend:     sdk.NewDecWithPrec(1, 18).Neg(),
+			divisor:      sdk.MustNewDecFromStr("-1.111111111111111"),
+			expRoundedUp: "0.000000000000000001",
+			expTruncated: "0.000000000000000000",
+		},
+		"big / small": {
+			dividend:     sdk.MustNewDecFromStr("999999999999999999"),
+			divisor:      sdk.NewDecWithPrec(1, 18),
+			expRoundedUp: "999999999999999999000000000000000000.000000000000000000",
+			expTruncated: "999999999999999999000000000000000000.000000000000000000",
+		},
+		"divide by dividend": {
+			dividend:     sdk.NewDecWithPrec(123, 0),
+			divisor:      sdk.MustNewDecFromStr("123"),
+			expRoundedUp: "1.000000000000000000",
+			expTruncated: "1.000000000000000000",
+		},
+		"zero divided": {
+			dividend:     sdk.NewDecWithPrec(0, 0),
+			divisor:      sdk.MustNewDecFromStr("1"),
+			expRoundedUp: "0.000000000000000000",
+			expTruncated: "0.000000000000000000",
+		},
+		"zero divided by negative value": {
+			dividend:     sdk.NewDecWithPrec(0, 0),
+			divisor:      sdk.MustNewDecFromStr("-1"),
+			expRoundedUp: "0.000000000000000000",
+			expTruncated: "0.000000000000000000",
+		},
+		"zero divided by zero": {
+			dividend: sdk.NewDecWithPrec(0, 0),
+			divisor:  sdk.MustNewDecFromStr("0"),
+			expPanic: true,
+		},
+		"divide by zero": {
+			dividend: sdk.NewDecWithPrec(1, 0),
+			divisor:  sdk.MustNewDecFromStr("0"),
+			expPanic: true,
+		},
+	}
+	for name, spec := range specs {
+		t.Run(name, func(t *testing.T) {
+			t.Run("round up", func(t *testing.T) {
+				t.Parallel()
+				if !spec.expPanic {
+					got := spec.dividend.Clone().QuoRoundupMut(spec.divisor.Clone())
+					require.Equal(t, spec.expRoundedUp, got.String())
+					return
+				}
+				require.Panics(t, func() {
+					_ = spec.dividend.Clone().QuoRoundupMut(spec.divisor.Clone())
+				})
+			})
+			t.Run("truncate", func(t *testing.T) {
+				t.Parallel()
+				if !spec.expPanic {
+					got := spec.dividend.Clone().QuoTruncateMut(spec.divisor.Clone())
+					require.Equal(t, spec.expTruncated, got.String())
+					return
+				}
+				require.Panics(t, func() {
+					_ = spec.dividend.Clone().QuoTruncateMut(spec.divisor.Clone())
+				})
+			})
+		})
+	}
+}
+
+func Test_DocumentAsymmetry(t *testing.T) {
+	zeroDec := sdk.ZeroDec()
+	emptyDec := sdk.Dec{}
+
+	zeroDecBz, err := zeroDec.Marshal()
+	require.NoError(t, err)
+	zeroDecJSON, err := zeroDec.MarshalJSON()
+	require.NoError(t, err)
+
+	emptyDecBz, err := emptyDec.Marshal()
+	require.NoError(t, err)
+	emptyDecJSON, err := emptyDec.MarshalJSON()
+	require.NoError(t, err)
+
+	// makes sense, zero and empty are semantically different and render differently
+	require.NotEqual(t, zeroDecJSON, emptyDecJSON)
+	// but on the proto wire they encode to the same bytes
+	require.Equal(t, zeroDecBz, emptyDecBz)
+
+	// zero values are symmetrical
+	zeroDecRoundTrip := sdk.Dec{}
+	err = zeroDecRoundTrip.Unmarshal(zeroDecBz)
+	require.NoError(t, err)
+	zeroDecRoundTripJSON, err := zeroDecRoundTrip.MarshalJSON()
+	require.NoError(t, err)
+	require.Equal(t, zeroDecJSON, zeroDecRoundTripJSON)
+	require.Equal(t, zeroDec, zeroDecRoundTrip)
+
+	// empty values are not
+	emptyDecRoundTrip := sdk.Dec{}
+	err = emptyDecRoundTrip.Unmarshal(emptyDecBz)
+	require.NoError(t, err)
+	emptyDecRoundTripJSON, err := emptyDecRoundTrip.MarshalJSON()
+	require.NoError(t, err)
+
+	// !!! this is the key point, they are not equal, it looks like a bug
+	require.NotEqual(t, emptyDecJSON, emptyDecRoundTripJSON)
+	require.NotEqual(t, emptyDec, emptyDecRoundTrip)
+}
+
+// 2^256 * 10^18 -1
+const maxValidDecNumber = "115792089237316195423570985008687907853269984665640564039457584007913129639935999999999999999999"
+
+func TestDecOpsWithinLimits(t *testing.T) {
+	maxValid, ok := new(big.Int).SetString(maxValidDecNumber, 10)
+	require.True(t, ok)
+	minValid := new(big.Int).Neg(maxValid)
+	specs := map[string]struct {
+		src    *big.Int
+		expErr bool
+	}{
+		"max": {
+			src: maxValid,
+		},
+		"max + 1": {
+			src:    new(big.Int).Add(maxValid, big.NewInt(1)),
+			expErr: true,
+		},
+		"min": {
+			src: minValid,
+		},
+		"min - 1": {
+			src:    new(big.Int).Sub(minValid, big.NewInt(1)),
+			expErr: true,
+		},
+		"max Int": {
+			// max Int is 2^256 -1
+			src: sdk.NewIntFromBigInt(new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil), big.NewInt(1))).BigInt(),
+		},
+		"min Int": {
+			// max Int is -1 *(2^256 -1)
+			src: sdk.NewIntFromBigInt(new(big.Int).Neg(new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil), big.NewInt(1)))).BigInt(),
+		},
+	}
+	for name, spec := range specs {
+		t.Run(name, func(t *testing.T) {
+			src := sdk.NewDecFromBigIntWithPrec(spec.src, 18)
+
+			ops := map[string]struct {
+				fn func(src sdk.Dec) sdk.Dec
+			}{
+				"AddMut": {
+					fn: func(src sdk.Dec) sdk.Dec { return src.AddMut(sdk.NewDec(0)) },
+				},
+				"SubMut": {
+					fn: func(src sdk.Dec) sdk.Dec { return src.SubMut(sdk.NewDec(0)) },
+				},
+				"MulMut": {
+					fn: func(src sdk.Dec) sdk.Dec { return src.MulMut(sdk.NewDec(1)) },
+				},
+				"MulTruncateMut": {
+					fn: func(src sdk.Dec) sdk.Dec { return src.MulTruncateMut(sdk.NewDec(1)) },
+				},
+				"MulIntMut": {
+					fn: func(src sdk.Dec) sdk.Dec { return src.MulIntMut(sdk.NewInt(1)) },
+				},
+				"MulInt64Mut": {
+					fn: func(src sdk.Dec) sdk.Dec { return src.MulInt64Mut(1) },
+				},
+				"QuoMut": {
+					fn: func(src sdk.Dec) sdk.Dec { return src.QuoMut(sdk.NewDec(1)) },
+				},
+				"QuoTruncateMut": {
+					fn: func(src sdk.Dec) sdk.Dec { return src.QuoTruncateMut(sdk.NewDec(1)) },
+				},
+				"QuoRoundupMut": {
+					fn: func(src sdk.Dec) sdk.Dec { return src.QuoRoundupMut(sdk.NewDec(1)) },
+				},
+			}
+			for name, op := range ops {
+				t.Run(name, func(t *testing.T) {
+					if spec.expErr {
+						assert.Panics(t, func() {
+							got := op.fn(src)
+							t.Log(got.String())
+						})
+						return
+					}
+					exp := src.String()
+					// exp no panics
+					got := op.fn(src)
+					assert.Equal(t, exp, got.String())
+				})
+			}
+		})
+	}
+}
+
+func TestDecCeilLimits(t *testing.T) {
+	maxValid, ok := new(big.Int).SetString(maxValidDecNumber, 10)
+	require.True(t, ok)
+	minValid := new(big.Int).Neg(maxValid)
+
+	specs := map[string]struct {
+		src    *big.Int
+		exp    string
+		expErr bool
+	}{
+		"max": {
+			src:    maxValid,
+			expErr: true,
+		},
+		"max + 1": {
+			src:    new(big.Int).Add(maxValid, big.NewInt(1)),
+			expErr: true,
+		},
+		"max - 1e18, previous full number": {
+			src: new(big.Int).Sub(maxValid, new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)),
+			exp: "115792089237316195423570985008687907853269984665640564039457584007913129639935.000000000000000000",
+		},
+		"min": {
+			src: minValid,
+			exp: "-115792089237316195423570985008687907853269984665640564039457584007913129639935.000000000000000000",
+		},
+		"min - 1": {
+			src:    new(big.Int).Sub(minValid, big.NewInt(1)),
+			expErr: true,
+		},
+	}
+	for name, spec := range specs {
+		t.Run(name, func(t *testing.T) {
+			src := sdk.NewDecFromBigIntWithPrec(spec.src, 18)
+			if spec.expErr {
+				assert.Panics(t, func() {
+					got := src.Ceil()
+					t.Log(got.String())
+				})
+				return
+			}
+			got := src.Ceil()
+			assert.Equal(t, spec.exp, got.String())
+		})
+	}
+}
+
+func TestTruncateIntLimits(t *testing.T) {
+	maxValid, ok := new(big.Int).SetString(maxValidDecNumber, 10)
+	require.True(t, ok)
+	minValid := new(big.Int).Neg(maxValid)
+
+	specs := map[string]struct {
+		src    *big.Int
+		exp    string
+		expErr bool
+	}{
+		"max": {
+			src: maxValid,
+			exp: "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+		},
+		"max + 1": {
+			src:    new(big.Int).Add(maxValid, big.NewInt(1)),
+			expErr: true,
+		},
+		"min": {
+			src: minValid,
+			exp: "-115792089237316195423570985008687907853269984665640564039457584007913129639935",
+		},
+		"min - 1": {
+			src:    new(big.Int).Sub(minValid, big.NewInt(1)),
+			expErr: true,
+		},
+	}
+	for name, spec := range specs {
+		t.Run(name, func(t *testing.T) {
+			src := sdk.NewDecFromBigIntWithPrec(spec.src, 18)
+			if spec.expErr {
+				assert.Panics(t, func() {
+					got := src.TruncateInt()
+					t.Log(got.String())
+				})
+				return
+			}
+			got := src.TruncateInt()
+			assert.Equal(t, spec.exp, got.String())
+		})
+	}
+}
+
+func TestRoundIntLimits(t *testing.T) {
+	maxValid, ok := new(big.Int).SetString(maxValidDecNumber, 10)
+	require.True(t, ok)
+	minValid := new(big.Int).Neg(maxValid)
+	oneE18 := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+
+	specs := map[string]struct {
+		src    *big.Int
+		exp    string
+		expErr bool
+	}{
+		"max -1e18; previous full number": {
+			src: new(big.Int).Sub(maxValid, oneE18),
+			exp: "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+		},
+		"max": {
+			src:    maxValid,
+			expErr: true,
+		},
+		"max + 1": {
+			src:    new(big.Int).Add(maxValid, big.NewInt(1)),
+			expErr: true,
+		},
+		"min + 1e18; previous full number": {
+			src: new(big.Int).Add(minValid, oneE18),
+			exp: "-115792089237316195423570985008687907853269984665640564039457584007913129639935",
+		},
+		"min": {
+			src:    minValid,
+			expErr: true,
+		},
+		"min - 1": {
+			src:    new(big.Int).Sub(minValid, big.NewInt(1)),
+			expErr: true,
+		},
+	}
+	for name, spec := range specs {
+		t.Run(name, func(t *testing.T) {
+			src := sdk.NewDecFromBigIntWithPrec(spec.src, 18)
+			t.Log(src.String())
+			if spec.expErr {
+				assert.Panics(t, func() {
+					got := src.RoundInt()
+					t.Log(got.String())
+				})
+				return
+			}
+			got := src.RoundInt()
+			assert.Equal(t, spec.exp, got.String())
+		})
+	}
+}
+
+func BenchmarkIsInValidRange(b *testing.B) {
+	maxValid, ok := new(big.Int).SetString(maxValidDecNumber, 10)
+	require.True(b, ok)
+	souceMax := sdk.NewDecFromBigIntWithPrec(maxValid, 18)
+	b.ResetTimer()
+	specs := map[string]sdk.Dec{
+		"max":         souceMax,
+		"greater max": sdk.NewDecFromBigIntWithPrec(maxValid, 16),
+		"min":         souceMax.Neg(),
+		"lower min":   sdk.NewDecFromBigIntWithPrec(new(big.Int).Neg(maxValid), 16),
+		"zero":        sdk.ZeroDec(),
+		"one":         sdk.OneDec(),
+	}
+	for name, source := range specs {
+		b.Run(name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_ = source.IsInValidRange()
+			}
+		})
 	}
 }

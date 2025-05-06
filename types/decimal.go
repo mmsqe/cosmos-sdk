@@ -26,20 +26,17 @@ const (
 	// Ceiling[Log2[10^Precision - 1]]
 	DecimalPrecisionBits = 60
 
-	// decimalTruncateBits is the minimum number of bits removed
-	// by a truncate operation. It is equal to
-	// Floor[Log2[10^Precision - 1]].
-	decimalTruncateBits = DecimalPrecisionBits - 1
-
-	maxDecBitLen = MaxBitLen + decimalTruncateBits
-
 	// max number of iterations in ApproxRoot function
 	maxApproxRootIterations = 300
 )
 
 var (
-	precisionReuse       = new(big.Int).Exp(big.NewInt(10), big.NewInt(Precision), nil)
-	fivePrecision        = new(big.Int).Quo(precisionReuse, big.NewInt(2))
+	precisionReuse = new(big.Int).Exp(big.NewInt(10), big.NewInt(Precision), nil)
+	fivePrecision  = new(big.Int).Quo(precisionReuse, big.NewInt(2))
+
+	upperLimit Dec
+	lowerLimit Dec
+
 	precisionMultipliers []*big.Int
 	zeroInt              = big.NewInt(0)
 	oneInt               = big.NewInt(1)
@@ -59,6 +56,11 @@ func init() {
 	for i := 0; i <= Precision; i++ {
 		precisionMultipliers[i] = calcPrecisionMultiplier(int64(i))
 	}
+	// 2^256 * 10^18 -1
+	tmp := new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil)
+	tmp = new(big.Int).Sub(new(big.Int).Mul(tmp, precisionReuse), big.NewInt(1))
+	upperLimit = NewDecFromBigIntWithPrec(tmp, Precision)
+	lowerLimit = upperLimit.Neg()
 }
 
 func precisionInt() *big.Int {
@@ -71,6 +73,10 @@ func SmallestDec() Dec { return Dec{new(big.Int).Set(oneInt)} }
 
 // calculate the precision multiplier
 func calcPrecisionMultiplier(prec int64) *big.Int {
+	if prec < 0 {
+		panic(fmt.Sprintf("negative precision %v", prec))
+	}
+
 	if prec > Precision {
 		panic(fmt.Sprintf("too much precision, maximum %v, provided %v", Precision, prec))
 	}
@@ -81,6 +87,10 @@ func calcPrecisionMultiplier(prec int64) *big.Int {
 
 // get the precision multiplier, do not mutate result
 func precisionMultiplier(prec int64) *big.Int {
+	if prec < 0 {
+		panic(fmt.Sprintf("negative precision %v", prec))
+	}
+
 	if prec > Precision {
 		panic(fmt.Sprintf("too much precision, maximum %v, provided %v", Precision, prec))
 	}
@@ -187,13 +197,14 @@ func NewDecFromStr(str string) (Dec, error) {
 	if !ok {
 		return Dec{}, fmt.Errorf("failed to set decimal string with base 10: %s", combinedStr)
 	}
-	if combined.BitLen() > maxDecBitLen {
-		return Dec{}, fmt.Errorf("decimal '%s' out of range; bitLen: got %d, max %d", str, combined.BitLen(), maxDecBitLen)
-	}
 	if neg {
 		combined = new(big.Int).Neg(combined)
 	}
 
+	result := Dec{i: combined}
+	if !result.IsInValidRange() {
+		return Dec{}, fmt.Errorf("out of range: %w", ErrInvalidDecimalStr)
+	}
 	return Dec{combined}, nil
 }
 
@@ -261,9 +272,7 @@ func (d Dec) Add(d2 Dec) Dec {
 func (d Dec) AddMut(d2 Dec) Dec {
 	d.i.Add(d.i, d2.i)
 
-	if d.i.BitLen() > maxDecBitLen {
-		panic("Int overflow")
-	}
+	d.assertInValidRange()
 	return d
 }
 
@@ -276,10 +285,20 @@ func (d Dec) Sub(d2 Dec) Dec {
 func (d Dec) SubMut(d2 Dec) Dec {
 	d.i.Sub(d.i, d2.i)
 
-	if d.i.BitLen() > maxDecBitLen {
+	d.assertInValidRange()
+	return d
+}
+
+func (d Dec) assertInValidRange() {
+	if !d.IsInValidRange() {
 		panic("Int overflow")
 	}
-	return d
+}
+
+// IsInValidRange returns true when the value is between the upper limit of (2^256 * 10^18)
+// and the lower limit of -1*(2^256 * 10^18).
+func (d Dec) IsInValidRange() bool {
+	return !(d.GT(upperLimit) || d.LT(lowerLimit))
 }
 
 // multiplication
@@ -292,10 +311,8 @@ func (d Dec) MulMut(d2 Dec) Dec {
 	d.i.Mul(d.i, d2.i)
 	chopped := chopPrecisionAndRound(d.i)
 
-	if chopped.BitLen() > maxDecBitLen {
-		panic("Int overflow")
-	}
 	*d.i = *chopped
+	d.assertInValidRange()
 	return d
 }
 
@@ -308,10 +325,7 @@ func (d Dec) MulTruncate(d2 Dec) Dec {
 func (d Dec) MulTruncateMut(d2 Dec) Dec {
 	d.i.Mul(d.i, d2.i)
 	chopPrecisionAndTruncate(d.i)
-
-	if d.i.BitLen() > maxDecBitLen {
-		panic("Int overflow")
-	}
+	d.assertInValidRange()
 	return d
 }
 
@@ -322,9 +336,7 @@ func (d Dec) MulInt(i Int) Dec {
 
 func (d Dec) MulIntMut(i Int) Dec {
 	d.i.Mul(d.i, i.BigInt())
-	if d.i.BitLen() > maxDecBitLen {
-		panic("Int overflow")
-	}
+	d.assertInValidRange()
 	return d
 }
 
@@ -335,10 +347,7 @@ func (d Dec) MulInt64(i int64) Dec {
 
 func (d Dec) MulInt64Mut(i int64) Dec {
 	d.i.Mul(d.i, big.NewInt(i))
-
-	if d.i.BitLen() > maxDecBitLen {
-		panic("Int overflow")
-	}
+	d.assertInValidRange()
 	return d
 }
 
@@ -355,9 +364,7 @@ func (d Dec) QuoMut(d2 Dec) Dec {
 	d.i.Quo(d.i, d2.i)
 
 	chopPrecisionAndRound(d.i)
-	if d.i.BitLen() > maxDecBitLen {
-		panic("Int overflow")
-	}
+	d.assertInValidRange()
 	return d
 }
 
@@ -374,9 +381,7 @@ func (d Dec) QuoTruncateMut(d2 Dec) Dec {
 	d.i.Quo(d.i, d2.i)
 
 	chopPrecisionAndTruncate(d.i)
-	if d.i.BitLen() > maxDecBitLen {
-		panic("Int overflow")
-	}
+	d.assertInValidRange()
 	return d
 }
 
@@ -393,9 +398,7 @@ func (d Dec) QuoRoundupMut(d2 Dec) Dec {
 	d.i.Quo(d.i, d2.i)
 
 	chopPrecisionAndRoundUp(d.i)
-	if d.i.BitLen() > maxDecBitLen {
-		panic("Int overflow")
-	}
+	d.assertInValidRange()
 	return d
 }
 
@@ -703,15 +706,17 @@ func (d Dec) Ceil() Dec {
 	quo, rem = quo.QuoRem(tmp, precisionReuse, rem)
 
 	// no need to round with a zero remainder regardless of sign
-	if rem.Cmp(zeroInt) == 0 {
-		return NewDecFromBigInt(quo)
+	var r Dec
+	switch rem.Sign() {
+	case 0:
+		r = NewDecFromBigInt(quo)
+	case -1:
+		r = NewDecFromBigInt(quo)
+	default:
+		r = NewDecFromBigInt(quo.Add(quo, oneInt))
 	}
-
-	if rem.Sign() == -1 {
-		return NewDecFromBigInt(quo)
-	}
-
-	return NewDecFromBigInt(quo.Add(quo, oneInt))
+	r.assertInValidRange()
+	return r
 }
 
 // MaxSortableDec is the largest Dec that can be passed into SortableDecBytes()
@@ -839,8 +844,8 @@ func (d *Dec) Unmarshal(data []byte) error {
 		return err
 	}
 
-	if d.i.BitLen() > maxDecBitLen {
-		return fmt.Errorf("decimal out of range; got: %d, max: %d", d.i.BitLen(), maxDecBitLen)
+	if !d.IsInValidRange() {
+		return errors.New("decimal out of range")
 	}
 
 	return nil
@@ -894,10 +899,12 @@ func MaxDec(d1, d2 Dec) Dec {
 
 // intended to be used with require/assert:  require.True(DecEq(...))
 func DecEq(t *testing.T, exp, got Dec) (*testing.T, bool, string, string, string) {
+	t.Helper()
 	return t, exp.Equal(got), "expected:\t%v\ngot:\t\t%v", exp.String(), got.String()
 }
 
-func DecApproxEq(t *testing.T, d1 Dec, d2 Dec, tol Dec) (*testing.T, bool, string, string, string) {
+func DecApproxEq(t *testing.T, d1, d2, tol Dec) (*testing.T, bool, string, string, string) {
+	t.Helper()
 	diff := d1.Sub(d2).Abs()
 	return t, diff.LTE(tol), "expected |d1 - d2| <:\t%v\ngot |d1 - d2| = \t\t%v", tol.String(), diff.String()
 }
