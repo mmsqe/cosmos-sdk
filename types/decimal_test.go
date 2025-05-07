@@ -222,40 +222,40 @@ func (s *decimalTestSuite) TestDecsEqual() {
 func (s *decimalTestSuite) TestArithmetic() {
 	tests := []struct {
 		d1, d2                                sdk.Dec
-		expMul, expMulTruncate, expMulRoundUp sdk.Dec
+		expMul, expMulTruncate                sdk.Dec
 		expQuo, expQuoRoundUp, expQuoTruncate sdk.Dec
 		expAdd, expSub                        sdk.Dec
 	}{
-		//  d1         d2         MUL    MulTruncate   MulRoundUp    QUO    QUORoundUp QUOTrunctate  ADD         SUB
-		{sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0)},
-		{sdk.NewDec(1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(1), sdk.NewDec(1)},
-		{sdk.NewDec(0), sdk.NewDec(1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(1), sdk.NewDec(-1)},
-		{sdk.NewDec(0), sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(-1), sdk.NewDec(1)},
-		{sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(-1), sdk.NewDec(-1)},
+		//  d1         d2         MUL    MulTruncate    QUO    QUORoundUp QUOTrunctate  ADD         SUB
+		{sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0)},
+		{sdk.NewDec(1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(1), sdk.NewDec(1)},
+		{sdk.NewDec(0), sdk.NewDec(1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(1), sdk.NewDec(-1)},
+		{sdk.NewDec(0), sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(-1), sdk.NewDec(1)},
+		{sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(-1), sdk.NewDec(-1)},
 
-		{sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(2), sdk.NewDec(0)},
-		{sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(-2), sdk.NewDec(0)},
-		{sdk.NewDec(1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(2)},
-		{sdk.NewDec(-1), sdk.NewDec(1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(-2)},
+		{sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(2), sdk.NewDec(0)},
+		{sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(-2), sdk.NewDec(0)},
+		{sdk.NewDec(1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(2)},
+		{sdk.NewDec(-1), sdk.NewDec(1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(-1), sdk.NewDec(0), sdk.NewDec(-2)},
 
 		{
-			sdk.NewDec(3), sdk.NewDec(7), sdk.NewDec(21), sdk.NewDec(21), sdk.NewDec(21),
+			sdk.NewDec(3), sdk.NewDec(7), sdk.NewDec(21), sdk.NewDec(21),
 			sdk.NewDecWithPrec(428571428571428571, 18), sdk.NewDecWithPrec(428571428571428572, 18), sdk.NewDecWithPrec(428571428571428571, 18),
 			sdk.NewDec(10), sdk.NewDec(-4),
 		},
 		{
-			sdk.NewDec(2), sdk.NewDec(4), sdk.NewDec(8), sdk.NewDec(8), sdk.NewDec(8), sdk.NewDecWithPrec(5, 1), sdk.NewDecWithPrec(5, 1), sdk.NewDecWithPrec(5, 1),
+			sdk.NewDec(2), sdk.NewDec(4), sdk.NewDec(8), sdk.NewDec(8), sdk.NewDecWithPrec(5, 1), sdk.NewDecWithPrec(5, 1), sdk.NewDecWithPrec(5, 1),
 			sdk.NewDec(6), sdk.NewDec(-2),
 		},
 
-		{sdk.NewDec(100), sdk.NewDec(100), sdk.NewDec(10000), sdk.NewDec(10000), sdk.NewDec(10000), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(200), sdk.NewDec(0)},
+		{sdk.NewDec(100), sdk.NewDec(100), sdk.NewDec(10000), sdk.NewDec(10000), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(200), sdk.NewDec(0)},
 
 		{
-			sdk.NewDecWithPrec(15, 1), sdk.NewDecWithPrec(15, 1), sdk.NewDecWithPrec(225, 2), sdk.NewDecWithPrec(225, 2), sdk.NewDecWithPrec(225, 2),
+			sdk.NewDecWithPrec(15, 1), sdk.NewDecWithPrec(15, 1), sdk.NewDecWithPrec(225, 2), sdk.NewDecWithPrec(225, 2),
 			sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(3), sdk.NewDec(0),
 		},
 		{
-			sdk.NewDecWithPrec(3333, 4), sdk.NewDecWithPrec(333, 4), sdk.NewDecWithPrec(1109889, 8), sdk.NewDecWithPrec(1109889, 8), sdk.NewDecWithPrec(1109889, 8),
+			sdk.NewDecWithPrec(3333, 4), sdk.NewDecWithPrec(333, 4), sdk.NewDecWithPrec(1109889, 8), sdk.NewDecWithPrec(1109889, 8),
 			sdk.MustNewDecFromStr("10.009009009009009009"), sdk.MustNewDecFromStr("10.009009009009009010"), sdk.MustNewDecFromStr("10.009009009009009009"),
 			sdk.NewDecWithPrec(3666, 4), sdk.NewDecWithPrec(3, 1),
 		},

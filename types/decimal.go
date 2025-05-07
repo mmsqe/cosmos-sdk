@@ -205,7 +205,7 @@ func NewDecFromStr(str string) (Dec, error) {
 	if !result.IsInValidRange() {
 		return Dec{}, fmt.Errorf("out of range: %w", ErrInvalidDecimalStr)
 	}
-	return Dec{combined}, nil
+	return result, nil
 }
 
 // Decimal from string, panic on error
