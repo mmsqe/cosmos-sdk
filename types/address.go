@@ -312,6 +312,7 @@ func (aa AccAddress) String() string {
 			return addr.(string)
 		}
 	}
+	fmt.Println("mm-Address-prefix:", GetConfig().GetBech32AccountAddrPrefix())
 	return cacheBech32Addr(GetConfig().GetBech32AccountAddrPrefix(), aa, accAddrCache, key)
 }
 
