@@ -2,12 +2,6 @@ module cosmossdk.io/tests/systemtests
 
 go 1.23.2
 
-replace (
-	// always use latest versions in tests
-	cosmossdk.io/systemtests => ../../systemtests
-	github.com/cosmos/cosmos-sdk => ../..
-)
-
 require (
 	cosmossdk.io/math v1.5.3
 	cosmossdk.io/systemtests v1.2.1
@@ -169,4 +163,8 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace cosmossdk.io/store => ../../store
+replace (
+	cosmossdk.io/store => ../../store
+	cosmossdk.io/systemtests => ../../systemtests
+	github.com/cosmos/cosmos-sdk => ../..
+)
