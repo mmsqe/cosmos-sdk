@@ -850,21 +850,9 @@ func (app *BaseApp) executeTxs(ctx context.Context, txs [][]byte) ([]*abci.ExecT
 
 	txResults := make([]*abci.ExecTxResult, 0, len(txs))
 	for i, rawTx := range txs {
-		var response *abci.ExecTxResult
-
-		if _, err := app.txDecoder(rawTx); err == nil {
+		response := app.validateTxDecoding(rawTx)
+		if response == nil {
 			response = app.deliverTx(rawTx, i)
-		} else {
-			// In the case where a transaction included in a block proposal is malformed,
-			// we still want to return a default response to comet. This is because comet
-			// expects a response for each transaction included in a block proposal.
-			response = sdkerrors.ResponseExecTxResultWithEvents(
-				sdkerrors.ErrTxDecode,
-				0,
-				0,
-				nil,
-				false,
-			)
 		}
 		// check after every tx if we should abort
 		select {

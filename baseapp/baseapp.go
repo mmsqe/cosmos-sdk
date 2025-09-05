@@ -790,7 +790,27 @@ func (app *BaseApp) deliverTx(tx []byte, txIndex int) *abci.ExecTxResult {
 	return app.deliverTxWithMultiStore(tx, txIndex, nil)
 }
 
+func (app *BaseApp) validateTxDecoding(tx []byte) *abci.ExecTxResult {
+	if _, err := app.txDecoder(tx); err != nil {
+		// In the case where a transaction included in a block proposal is malformed,
+		// we still want to return a default response to comet. This is because comet
+		// expects a response for each transaction included in a block proposal.
+		return sdkerrors.ResponseExecTxResultWithEvents(
+			sdkerrors.ErrTxDecode,
+			0,
+			0,
+			nil,
+			false,
+		)
+	}
+	return nil
+}
+
 func (app *BaseApp) deliverTxWithMultiStore(tx []byte, txIndex int, txMultiStore storetypes.MultiStore) *abci.ExecTxResult {
+	if res := app.validateTxDecoding(tx); res != nil {
+		return res
+	}
+
 	gInfo := sdk.GasInfo{}
 	resultStr := "successful"
 
