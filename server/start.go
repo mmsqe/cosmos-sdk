@@ -272,7 +272,7 @@ func startStandAlone(svrCtx *Context, svrCfg serverconfig.Config, clientCtx clie
 		app.RegisterNodeService(clientCtx, svrCfg)
 	}
 
-	grpcSrv, clientCtx, err := startGrpcServer(ctx, g, svrCfg.GRPC, clientCtx, svrCtx, app)
+	grpcSrv, clientCtx, err := StartGrpcServer(ctx, g, svrCfg.GRPC, clientCtx, svrCtx, app)
 	if err != nil {
 		return err
 	}
@@ -338,7 +338,7 @@ func startInProcess(svrCtx *Context, svrCfg serverconfig.Config, clientCtx clien
 		}
 	}
 
-	grpcSrv, clientCtx, err := startGrpcServer(ctx, g, svrCfg.GRPC, clientCtx, svrCtx, app)
+	grpcSrv, clientCtx, err := StartGrpcServer(ctx, g, svrCfg.GRPC, clientCtx, svrCtx, app)
 	if err != nil {
 		return err
 	}
@@ -446,7 +446,17 @@ func setupTraceWriter(svrCtx *Context) (traceWriter io.WriteCloser, cleanup func
 	return traceWriter, cleanup, nil
 }
 
-func startGrpcServer(
+// StartGrpcServer starts a gRPC server with the provided configuration.
+// It returns the gRPC server instance, updated client context with backup connections,
+// and any error encountered during setup.
+//
+// The function will:
+// - Create a gRPC client connection
+// - Setup backup gRPC connections if configured
+// - Start the gRPC server in a goroutine
+//
+// Note: The provided context will ensure that the server is gracefully shut down.
+func StartGrpcServer(
 	ctx context.Context,
 	g *errgroup.Group,
 	config serverconfig.GRPCConfig,
