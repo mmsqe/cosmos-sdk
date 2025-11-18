@@ -22,7 +22,14 @@ import (
 
 // NewGRPCServer returns a correctly configured and initialized gRPC server.
 // Note, the caller is responsible for starting the server. See StartGRPCServer.
-func NewGRPCServer(clientCtx client.Context, app types.Application, cfg config.GRPCConfig, logger log.Logger) (*grpc.Server, client.Context, error) {
+func NewGRPCServer(clientCtx client.Context, app types.Application, cfg config.GRPCConfig) (*grpc.Server, error) {
+	srv, _, err := NewGRPCServerAndContext(clientCtx, app, cfg, log.NewNopLogger())
+	return srv, err
+}
+
+// NewGRPCServerAndContext returns a correctly configured and initialized gRPC server
+// along with an updated client context that may include historical gRPC connections.
+func NewGRPCServerAndContext(clientCtx client.Context, app types.Application, cfg config.GRPCConfig, logger log.Logger) (*grpc.Server, client.Context, error) {
 	maxSendMsgSize := cfg.MaxSendMsgSize
 	if maxSendMsgSize == 0 {
 		maxSendMsgSize = config.DefaultGRPCMaxSendMsgSize
@@ -33,17 +40,17 @@ func NewGRPCServer(clientCtx client.Context, app types.Application, cfg config.G
 		maxRecvMsgSize = config.DefaultGRPCMaxRecvMsgSize
 	}
 
-	// Setup backup gRPC connections if configured
-	if len(cfg.BackupGRPCBlockAddressBlockRange) > 0 {
-		updatedCtx, err := setupBackupGRPCConnections(
+	// Setup historical gRPC connections if configured
+	if len(cfg.HistoricalGRPCBlockAddressBlockRange) > 0 {
+		updatedCtx, err := setupHistoricalGRPCConnections(
 			clientCtx,
-			cfg.BackupGRPCBlockAddressBlockRange,
+			cfg.HistoricalGRPCBlockAddressBlockRange,
 			maxRecvMsgSize,
 			maxSendMsgSize,
 			logger,
 		)
 		if err != nil {
-			return nil, clientCtx, fmt.Errorf("failed to setup backup gRPC connections: %w", err)
+			return nil, clientCtx, fmt.Errorf("failed to setup historical gRPC connections: %w", err)
 		}
 		clientCtx = updatedCtx
 	}
@@ -84,19 +91,19 @@ func NewGRPCServer(clientCtx client.Context, app types.Application, cfg config.G
 	return grpcSrv, clientCtx, nil
 }
 
-// setupBackupGRPCConnections creates backup gRPC connections based on the configuration.
-func setupBackupGRPCConnections(
+// setupHistoricalGRPCConnections creates historical gRPC connections based on the configuration.
+func setupHistoricalGRPCConnections(
 	clientCtx client.Context,
-	backupAddresses map[config.BlockRange]string,
+	historicalAddresses map[config.BlockRange]string,
 	maxRecvMsgSize, maxSendMsgSize int,
 	logger log.Logger,
 ) (client.Context, error) {
-	if len(backupAddresses) == 0 {
+	if len(historicalAddresses) == 0 {
 		return clientCtx, nil
 	}
 
-	backupConns := make(config.BackupGRPCConnections)
-	for blockRange, address := range backupAddresses {
+	historicalConns := make(config.HistoricalGRPCConnections)
+	for blockRange, address := range historicalAddresses {
 		conn, err := grpc.NewClient(
 			address,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -107,9 +114,9 @@ func setupBackupGRPCConnections(
 			),
 		)
 		if err != nil {
-			return clientCtx, fmt.Errorf("failed to create backup gRPC connection for %s: %w", address, err)
+			return clientCtx, fmt.Errorf("failed to create historical gRPC connection for %s: %w", address, err)
 		}
-		backupConns[blockRange] = conn
+		historicalConns[blockRange] = conn
 	}
 
 	// Get the default connection from the clientCtx
@@ -118,10 +125,10 @@ func setupBackupGRPCConnections(
 		return clientCtx, fmt.Errorf("default gRPC client not set in clientCtx")
 	}
 
-	provider := client.NewGRPCConnProvider(defaultConn, backupConns)
+	provider := client.NewGRPCConnProvider(defaultConn, historicalConns)
 	clientCtx = clientCtx.WithGRPCConnProvider(provider)
 
-	logger.Info("backup gRPC connections configured", "count", len(backupConns))
+	logger.Info("historical gRPC connections configured", "count", len(historicalConns))
 	return clientCtx, nil
 }
 
