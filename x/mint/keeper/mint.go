@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	sdkmath "cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
@@ -49,34 +50,26 @@ func DefaultMintFn(ic types.InflationCalculationFn) MintFn {
 
 		// calculate minted coins
 		mintedCoin := minter.BlockProvision(params)
-		mintedCoins := sdk.NewCoins(mintedCoin)
 
 		maxSupply := params.MaxSupply
 		totalSupply := k.bankKeeper.GetSupply(ctx, params.MintDenom).Amount // fetch total supply from the bank module
 
-		// if maxSupply is not infinite, check against max_supply parameter
-		if !maxSupply.IsZero() {
-			if totalSupply.Add(mintedCoins.AmountOf(params.MintDenom)).GT(maxSupply) {
-				// calculate the difference between maxSupply and totalSupply
-				diff := maxSupply.Sub(totalSupply)
-				// mint the difference
-				diffCoin := sdk.NewCoin(params.MintDenom, diff)
-				diffCoins := sdk.NewCoins(diffCoin)
-
-				// mint coins
-				if err := k.MintCoins(ctx, diffCoins); err != nil {
-					return err
-				}
-				mintedCoins = diffCoins
+		// if maxSupply is not infinite, and minted coins exceeds maxSupply, adjust minted coins to be the diff
+		if !maxSupply.IsZero() && totalSupply.Add(mintedCoin.Amount).GT(maxSupply) {
+			// calculate the difference between maxSupply and totalSupply
+			diff := maxSupply.Sub(totalSupply)
+			if diff.Sign() == -1 {
+				// ignore if total supply already exceeds max supply
+				diff = sdkmath.ZeroInt()
 			}
+			// mint the difference
+			mintedCoin.Amount = diff
 		}
 
-		// mint coins if maxSupply is infinite or total staking supply is less than maxSupply
-		if maxSupply.IsZero() || totalSupply.Add(mintedCoins.AmountOf(params.MintDenom)).LT(maxSupply) {
-			// mint coins
-			if err := k.MintCoins(ctx, mintedCoins); err != nil {
-				return err
-			}
+		// mint coins, will skip zero coin automatically
+		mintedCoins := sdk.NewCoins(mintedCoin)
+		if err := k.MintCoins(ctx, mintedCoins); err != nil {
+			return err
 		}
 
 		// send the minted coins to the fee collector account
