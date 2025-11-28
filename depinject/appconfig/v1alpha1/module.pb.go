@@ -191,7 +191,7 @@ func (m *PackageReference) GetRevision() uint32 {
 // can migrate from.
 type MigrateFromInfo struct {
 	// module is the fully-qualified protobuf name of the module config object
-	// for the previous module version, ex: "cosmos.group.module.v1.Module".
+	// for the previous module version, ex: "contrib.group.module.v1.Module".
 	Module string `protobuf:"bytes,1,opt,name=module,proto3" json:"module,omitempty"`
 }
 
