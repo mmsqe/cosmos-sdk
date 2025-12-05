@@ -62,15 +62,24 @@ func (k Keeper) calculateDelegationRewardsBetween(ctx context.Context, val staki
 	if err != nil {
 		panic(err)
 	}
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	// return staking * (ending - starting)
 	starting, err := k.GetValidatorHistoricalRewards(ctx, valBz, startingPeriod)
 	if err != nil {
+		sdkCtx.Logger().Error("Failed to get starting historical rewards",
+			"validator", val.GetOperator(),
+			"startingPeriod", startingPeriod,
+			"error", err)
 		return sdk.DecCoins{}, err
 	}
 
 	ending, err := k.GetValidatorHistoricalRewards(ctx, valBz, endingPeriod)
 	if err != nil {
+		sdkCtx.Logger().Error("Failed to get ending historical rewards",
+			"validator", val.GetOperator(),
+			"endingPeriod", endingPeriod,
+			"error", err)
 		return sdk.DecCoins{}, err
 	}
 
@@ -80,6 +89,14 @@ func (k Keeper) calculateDelegationRewardsBetween(ctx context.Context, val staki
 	}
 	// note: necessary to truncate so we don't allow withdrawing more rewards than owed
 	rewards := difference.MulDecTruncate(stake)
+	sdkCtx.Logger().Info("Calculated delegation rewards",
+		"validator", val.GetOperator(),
+		"difference", difference.String(),
+		"startingPeriod", startingPeriod,
+		"startingRatio", starting.CumulativeRewardRatio.String(),
+		"endingPeriod", endingPeriod,
+		"endingRatio", ending.CumulativeRewardRatio.String(),
+		"rewards", rewards.String())
 	return rewards, nil
 }
 
