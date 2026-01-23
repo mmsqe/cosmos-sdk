@@ -16,37 +16,39 @@ const (
 type MVData = GMVData[[]byte]
 
 func NewMVData() *MVData {
-	return NewGMVData(storetypes.BytesIsZero, storetypes.BytesValueLen)
+	return NewGMVData(storetypes.BytesIsZero, storetypes.BytesValueLen, bytes.Equal)
 }
 
 type GMVData[V any] struct {
 	tree.BTree[dataItem[V]]
 	isZero   func(V) bool
 	valueLen func(V) int
+	eq       func(V, V) bool
 }
 
 func NewMVStore(key storetypes.StoreKey) MVStore {
 	switch key.(type) {
 	case *storetypes.ObjectStoreKey:
-		return NewGMVData(storetypes.AnyIsZero, storetypes.AnyValueLen)
+		return NewGMVData(storetypes.AnyIsZero, storetypes.AnyValueLen, nil)
 	default:
-		return NewGMVData(storetypes.BytesIsZero, storetypes.BytesValueLen)
+		return NewGMVData(storetypes.BytesIsZero, storetypes.BytesValueLen, bytes.Equal)
 	}
 }
 
-func NewGMVData[V any](isZero func(V) bool, valueLen func(V) int) *GMVData[V] {
+func NewGMVData[V any](isZero func(V) bool, valueLen func(V) int, eq func(V, V) bool) *GMVData[V] {
 	return &GMVData[V]{
 		BTree:    *tree.NewBTree(tree.KeyItemLess[dataItem[V]], OuterBTreeDegree),
 		isZero:   isZero,
 		valueLen: valueLen,
-	}
 }
-
-// getTree returns `nil` if not found
-func (d *GMVData[V]) getTree(key Key) *tree.BTree[secondaryDataItem[V]] {
-	outer, _ := d.Get(dataItem[V]{Key: key})
-	return outer.Tree
-}
+		if delayed {
+			for _, desc := range rs.DelayedReads {
+				if !d.validateRead(desc, txn) {
+					return false
+				}
+			}
+			return true
+		}
 
 // getTreeOrDefault set a new tree atomically if not found.
 func (d *GMVData[V]) getTreeOrDefault(key Key) *tree.BTree[secondaryDataItem[V]] {
@@ -83,15 +85,21 @@ func (d *GMVData[V]) Read(key Key, txn TxnIndex) (V, TxnVersion, bool) {
 		return zero, InvalidTxnVersion, false
 	}
 
-	tree := d.getTree(key)
-	if tree == nil {
+	inner := d.getTree(key)
+	if inner == nil {
 		return zero, InvalidTxnVersion, false
 	}
 
 	// find the closest txn that's less than the given txn
-	item, ok := seekClosestTxn(tree, txn)
+	item, ok := seekClosestTxn(inner, txn)
 	if !ok {
 		return zero, InvalidTxnVersion, false
+	}
+
+	// Internal index 0 represents cached pre-state (storage). Externally, we keep
+	// InvalidTxnVersion semantics for storage reads.
+	if item.Index == 0 {
+		return item.Value, InvalidTxnVersion, item.Estimate
 	}
 
 	return item.Value, item.Version(), item.Estimate
@@ -140,10 +148,26 @@ func (d *GMVData[V]) validateRead(desc ReadDescriptor[V], txn TxnIndex) bool {
 		return false
 	}
 
-	if !desc.Validate(v, version) {
-		return false
+	if desc.Validate(v, version) {
+		return true
 	}
-	return true
+
+	// If the original read was from storage (InvalidTxnVersion) and now resolves to a
+	// versioned value, allow validation to pass if the value matches the cached
+	// pre-state (storage) value stored at internal index 0.
+	//
+	// This avoids re-reading from storage during validation for value-based checks.
+	if desc.Predicate == nil && !desc.Version.Valid() && version.Valid() && d.eq != nil {
+		if inner := d.getTree(desc.Key); inner != nil {
+			if item, ok := inner.Get(secondaryDataItem[V]{Index: 0}); ok {
+				if d.eq(v, item.Value) {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
 
 // validateIterator validates the iteration descriptor by replaying and compare the recorded reads.
