@@ -20,7 +20,7 @@ func NewMVData() *MVData {
 }
 
 type GMVData[V any] struct {
-	tree.BTree[dataItem[V]]
+	index    *mvIndex[V]
 	isZero   func(V) bool
 	valueLen func(V) int
 	eq       func(V, V) bool
@@ -29,6 +29,8 @@ type GMVData[V any] struct {
 func NewMVStore(key storetypes.StoreKey) MVStore {
 	switch key.(type) {
 	case *storetypes.ObjectStoreKey:
+		// Object stores don't necessarily have a deterministic equality relation.
+		// Keep version-based validation by default.
 		return NewGMVData(storetypes.AnyIsZero, storetypes.AnyValueLen, nil)
 	default:
 		return NewGMVData(storetypes.BytesIsZero, storetypes.BytesValueLen, bytes.Equal)
@@ -36,23 +38,23 @@ func NewMVStore(key storetypes.StoreKey) MVStore {
 }
 
 func NewGMVData[V any](isZero func(V) bool, valueLen func(V) int, eq func(V, V) bool) *GMVData[V] {
-	return &GMVData[V]{
-		BTree:    *tree.NewBTree(tree.KeyItemLess[dataItem[V]], OuterBTreeDegree),
+	d := &GMVData[V]{
+		index:    newMVIndex[V](),
 		isZero:   isZero,
 		valueLen: valueLen,
 		eq:       eq,
 	}
+	return d
 }
 
 // getTree returns `nil` if not found.
 func (d *GMVData[V]) getTree(key Key) *tree.BTree[secondaryDataItem[V]] {
-	outer, _ := d.Get(dataItem[V]{Key: key})
-	return outer.Tree
+	return d.index.get(key)
 }
 
 // getTreeOrDefault sets a new tree atomically if not found.
 func (d *GMVData[V]) getTreeOrDefault(key Key) *tree.BTree[secondaryDataItem[V]] {
-	return d.GetOrDefault(dataItem[V]{Key: key}, (*dataItem[V]).Init).Tree
+	return d.index.getOrCreate(key)
 }
 
 func (d *GMVData[V]) Write(key Key, value V, version TxnVersion) {
@@ -96,8 +98,7 @@ func (d *GMVData[V]) Read(key Key, txn TxnIndex) (V, TxnVersion, bool) {
 		return zero, InvalidTxnVersion, false
 	}
 
-	// Internal index 0 represents cached pre-state (storage). Externally, we keep
-	// InvalidTxnVersion semantics for storage reads.
+	// Index 0 corresponds to the pre-state from storage (InvalidTxnVersion).
 	if item.Index == 0 {
 		return item.Value, InvalidTxnVersion, item.Estimate
 	}
@@ -109,7 +110,8 @@ func (d *GMVData[V]) Iterator(
 	opts IteratorOptions, txn TxnIndex,
 	waitFn func(TxnIndex),
 ) *MVIterator[V] {
-	return NewMVIterator(opts, txn, d.Iter(), waitFn)
+	keys := d.index.snapshotKeys(opts.Start, opts.End, opts.Ascending)
+	return NewMVIterator(opts, txn, d, keys, waitFn)
 }
 
 // ValidateReadSet validates the read descriptors,
@@ -173,7 +175,8 @@ func (d *GMVData[V]) validateRead(desc ReadDescriptor[V], txn TxnIndex) bool {
 // validateIterator validates the iteration descriptor by replaying and compare the recorded reads.
 // returns true if valid.
 func (d *GMVData[V]) validateIterator(desc IteratorDescriptor[V], txn TxnIndex) bool {
-	it := NewMVIterator(desc.IteratorOptions, txn, d.Iter(), nil)
+	keys := d.index.snapshotKeys(desc.Start, desc.End, desc.Ascending)
+	it := NewMVIterator(desc.IteratorOptions, txn, d, keys, nil)
 	defer it.Close()
 
 	var i int
@@ -216,23 +219,23 @@ func (d *GMVData[V]) Snapshot() (snapshot []GKVPair[V]) {
 }
 
 func (d *GMVData[V]) SnapshotTo(cb func(Key, V) bool) {
-	d.Scan(func(outer dataItem[V]) bool {
-		item, ok := outer.Tree.Max()
+	keys := d.index.snapshotAllKeys(true)
+	for i := 0; i < len(keys); i++ {
+		inner := d.getTree(keys[i])
+		if inner == nil {
+			continue
+		}
+		item, ok := inner.Max()
 		if !ok {
-			return true
+			continue
 		}
-
 		if item.Estimate {
-			return true
+			continue
 		}
-
-		if item.Index == 0 {
-			// storage value
-			return true
+		if !cb(keys[i], item.Value) {
+			return
 		}
-
-		return cb(outer.Key, item.Value)
-	})
+	}
 }
 
 func (d *GMVData[V]) SnapshotToStore(store storetypes.Store) {
