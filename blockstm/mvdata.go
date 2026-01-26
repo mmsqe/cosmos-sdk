@@ -11,6 +11,10 @@ import (
 const (
 	OuterBTreeDegree = 4 // Since we do copy-on-write a lot, smaller degree means smaller allocations
 	InnerBTreeDegree = 4
+
+	// maxValueSnapshotBytes caps value snapshotting (pre-state cache / captured bytes) for validation.
+	// Larger values skip snapshotting and rely on version-based validation.
+	maxValueSnapshotBytes = 16 << 10 // 16KiB
 )
 
 type MVData = GMVData[[]byte]
@@ -24,6 +28,14 @@ type GMVData[V any] struct {
 	isZero   func(V) bool
 	valueLen func(V) int
 	eq       func(V, V) bool
+}
+
+func (d *GMVData[V]) shouldSnapshotValue(value V) bool {
+	if d.valueLen == nil {
+		return false
+	}
+	sz := d.valueLen(value)
+	return sz >= 0 && sz <= maxValueSnapshotBytes
 }
 
 func NewMVStore(key storetypes.StoreKey) MVStore {
@@ -73,6 +85,11 @@ func (d *GMVData[V]) Delete(key Key, txn TxnIndex) {
 }
 
 func (d *GMVData[V]) CacheStorageValue(key Key, value V) {
+	// Storage pre-state caching is only used to support value-based validation.
+	// For large values, skip caching and fall back to version-based validation.
+	if d.eq == nil || !d.shouldSnapshotValue(value) {
+		return
+	}
 	tree := d.getTreeOrDefault(key)
 	tree.Set(secondaryDataItem[V]{Index: 0, Value: value})
 }

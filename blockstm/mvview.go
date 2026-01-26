@@ -104,8 +104,10 @@ func (s *GMVMemoryView[V]) Get(key []byte) V {
 		// if not found, record version -1 when reading from storage.
 		s.readSet.Reads = append(s.readSet.Reads, NewReadDescriptor[V](key, version))
 		if !version.Valid() {
-			value = s.storage.Get(key)
-			s.mvData.CacheStorageValue(key, value)
+			storageValue := s.storage.Get(key)
+			// Cache pre-state only when the value is small enough; see CacheStorageValue.
+			s.mvData.CacheStorageValue(key, storageValue)
+			value = storageValue
 		}
 		return value
 	}
@@ -133,8 +135,19 @@ func (s *GMVMemoryView[V]) GetWithPredicate(key []byte, predicate Predicate[V]) 
 		}
 
 		if !version.Valid() {
-			value = s.storage.Get(key)
-			s.mvData.CacheStorageValue(key, value)
+			storageValue := s.storage.Get(key)
+			observed := predicate(storageValue)
+
+			// If we can cache the pre-state, keep predicate-based validation.
+			// Otherwise, fall back to version-based validation to avoid caching large values.
+			if s.mvData.eq != nil && s.mvData.shouldSnapshotValue(storageValue) {
+				s.mvData.CacheStorageValue(key, storageValue)
+				s.readSet.Reads = append(s.readSet.Reads, NewReadDescriptorWithPredicate[V](key, InvalidTxnVersion, predicate, observed))
+				return observed
+			}
+
+			s.readSet.Reads = append(s.readSet.Reads, NewReadDescriptor[V](key, InvalidTxnVersion))
+			return observed
 		}
 
 		observed := predicate(value)
@@ -144,9 +157,29 @@ func (s *GMVMemoryView[V]) GetWithPredicate(key []byte, predicate Predicate[V]) 
 }
 
 func (s *GMVMemoryView[V]) Has(key []byte) bool {
-	return s.GetWithPredicate(key, func(v V) bool {
-		return !s.mvData.isZero(v)
-	})
+	if s.writeSet != nil {
+		if value, found := s.writeSet.OverlayGet(key); found {
+			return !s.mvData.isZero(value)
+		}
+	}
+
+	for {
+		value, version, estimate := s.mvData.Read(key, s.txn)
+		if estimate {
+			// invariant: the txn index must be valid, because storage version won't write ESTIMATE mark
+			s.waitFor(version.Index)
+			continue
+		}
+
+		if !version.Valid() {
+			exists := s.storage.Has(key)
+			s.readSet.Reads = append(s.readSet.Reads, NewReadDescriptor[V](key, InvalidTxnVersion))
+			return exists
+		}
+
+		s.readSet.Reads = append(s.readSet.Reads, NewReadDescriptor[V](key, version))
+		return !s.mvData.isZero(value)
+	}
 }
 
 func (s *GMVMemoryView[V]) Set(key []byte, value V) {
