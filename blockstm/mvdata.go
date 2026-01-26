@@ -40,17 +40,17 @@ func NewGMVData[V any](isZero func(V) bool, valueLen func(V) int, eq func(V, V) 
 		BTree:    *tree.NewBTree(tree.KeyItemLess[dataItem[V]], OuterBTreeDegree),
 		isZero:   isZero,
 		valueLen: valueLen,
+		eq:       eq,
+	}
 }
-		if delayed {
-			for _, desc := range rs.DelayedReads {
-				if !d.validateRead(desc, txn) {
-					return false
-				}
-			}
-			return true
-		}
 
-// getTreeOrDefault set a new tree atomically if not found.
+// getTree returns `nil` if not found.
+func (d *GMVData[V]) getTree(key Key) *tree.BTree[secondaryDataItem[V]] {
+	outer, _ := d.Get(dataItem[V]{Key: key})
+	return outer.Tree
+}
+
+// getTreeOrDefault sets a new tree atomically if not found.
 func (d *GMVData[V]) getTreeOrDefault(key Key) *tree.BTree[secondaryDataItem[V]] {
 	return d.GetOrDefault(dataItem[V]{Key: key}, (*dataItem[V]).Init).Tree
 }
