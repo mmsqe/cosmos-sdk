@@ -21,3 +21,8 @@ Individual configs:
 - `make tlc-value`
 - `make tlc-aba-version`
 - `make tlc-aba-value`
+
+MVMemory untouched-store cleanup regression:
+
+- `make tlc-mvmemory` (should pass)
+- `make tlc-mvmemory-bug` (expected failure; demonstrates what happens if old keys in an untouched store are not deleted)
