@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := tlc
-.PHONY: tlc tlc-value tlc-version tlc-aba-value tlc-aba-version tlc-mvmemory tlc-mvmemory-bug clean-states help check-tlc
+.PHONY: tlc tlc-value tlc-version tlc-aba-value tlc-aba-version tlc-mvmemory tlc-mvmemory-bug tlc-mvmemory-trace tlc-mvmemory-trace-bug clean-states help check-tlc
 
 JAVA ?= java
 JAVA_OPTS ?= -XX:+UseParallelGC
@@ -30,6 +30,8 @@ help:
 	@echo "  make tlc-aba-value   # run ABA scenario (value-based)"
 	@echo "  make tlc-mvmemory     # MVMemory untouched-store cleanup (should pass)"
 	@echo "  make tlc-mvmemory-bug # MVMemory untouched-store cleanup (expected fail)"
+	@echo "  make tlc-mvmemory-trace     # MVMemory trace-validated run (should pass)"
+	@echo "  make tlc-mvmemory-trace-bug # MVMemory trace-validated run (expected fail)"
 	@echo "  make clean-states    # remove TLC state cache"
 	@echo ""
 	@echo "Variables:"
@@ -79,3 +81,9 @@ tlc-mvmemory: check-tlc
 
 tlc-mvmemory-bug: check-tlc
 	$(TLC) $(TLC_OPTS) -config MVMemoryUntouched_bug.cfg MVMemoryUntouched.tla
+
+tlc-mvmemory-trace: check-tlc
+	$(TLC) $(TLC_OPTS) -config TraceMVMemoryUntouched_ok.cfg TraceMVMemoryUntouchedTV_ok.tla
+
+tlc-mvmemory-trace-bug: check-tlc
+	$(TLC) $(TLC_OPTS) -config TraceMVMemoryUntouched_bug.cfg TraceMVMemoryUntouchedTV_bug.tla
