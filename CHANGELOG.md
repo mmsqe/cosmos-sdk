@@ -40,6 +40,10 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Breaking Changes
 
+### API Breaking
+
+* (mempool) [#25338](https://github.com/cosmos/cosmos-sdk/pull/25338) Respect gas wanted returned by ante handler for mempool. `mempool.Tx` is renamed to `mempool.PooledTx` and the dual `Insert` / `InsertWithOption` methods are collapsed into a single `Insert(ctx, sdk.Tx, InsertOption)`.
+
 ### Features
 
 ### Improvements

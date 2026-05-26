@@ -683,7 +683,7 @@ func (s *ABCIUtilsTestSuite) TestDefaultProposalHandler_PriorityNonceMempoolTxSe
 
 			for _, v := range tc.txInputs {
 				app.EXPECT().PrepareProposalVerifyTx(v.tx).Return(v.bz, nil).AnyTimes()
-				s.NoError(mp.Insert(s.ctx.WithPriority(v.priority), v.tx))
+				s.NoError(mp.Insert(s.ctx.WithPriority(v.priority), v.tx, mempool.InsertOption{}))
 				tc.req.Txs = append(tc.req.Txs, v.bz)
 			}
 
@@ -701,6 +701,134 @@ func (s *ABCIUtilsTestSuite) TestDefaultProposalHandler_PriorityNonceMempoolTxSe
 			s.Require().EqualValues(tc.expectedTxs, respTxIndexes)
 		})
 	}
+}
+
+// TestDefaultProposalHandler_RespectsAnteGasWanted is the proposal-layer
+// regression test for the bug fixed by this PR: when the gas wanted reported by
+// the ante handler (stored on the mempool entry via InsertOption.GasWanted)
+// differs from the value declared by the tx's GetGas(), PrepareProposal must
+// use the ante value for block gas accounting. Before the fix, a tx that
+// declared a low GetGas() but whose ante actually wanted more gas could be
+// over-packed into a block, exceeding MaxGas.
+func (s *ABCIUtilsTestSuite) TestDefaultProposalHandler_RespectsAnteGasWanted() {
+	cdc := codectestutil.CodecOptions{}.NewCodec()
+	baseapptestutil.RegisterInterfaces(cdc.InterfaceRegistry())
+	txConfig := authtx.NewTxConfig(cdc, authtx.DefaultSignModes)
+
+	// Build a tx that declares GasLimit=50 via the tx body. The ante handler
+	// will report gasWanted=200 (the authoritative value).
+	const (
+		txDeclaredGas = uint64(50)
+		anteGasWanted = uint64(200)
+		maxBlockGas   = int64(100) // between the two values, so the outcome differs
+	)
+
+	// Build a tx with a low declared GasLimit so that tx.GetGas() returns
+	// txDeclaredGas. The ante value passed via InsertOption must override it
+	// for block gas selection.
+	builder := txConfig.NewTxBuilder()
+	s.Require().NoError(builder.SetMsgs(
+		&baseapptestutil.MsgKeyValue{Value: []byte(`regression-tx`)},
+	))
+	builder.SetGasLimit(txDeclaredGas)
+	privKey := secp256k1.GenPrivKeyFromSecret([]byte("regression-secret"))
+	setTxSignatureWithSecret(s.T(), builder, signingtypes.SignatureV2{
+		PubKey:   privKey.PubKey(),
+		Sequence: 1,
+		Data:     &signingtypes.SingleSignatureData{},
+	})
+	tx := builder.GetTx()
+
+	bz, err := txConfig.TxEncoder()(tx)
+	s.Require().NoError(err)
+
+	ctrl := gomock.NewController(s.T())
+	app := mock.NewMockProposalTxVerifier(ctrl)
+	app.EXPECT().PrepareProposalVerifyTx(tx).Return(bz, nil).AnyTimes()
+
+	mp := mempool.NewPriorityMempool(mempool.DefaultPriorityNonceMempoolConfig())
+	s.Require().NoError(mp.Insert(
+		s.ctx.WithPriority(1), tx,
+		mempool.InsertOption{GasWanted: anteGasWanted},
+	))
+
+	ph := baseapp.NewDefaultProposalHandler(mp, app)
+	resp, err := ph.PrepareProposalHandler()(
+		s.ctx.WithConsensusParams(cmtproto.ConsensusParams{
+			Block: &cmtproto.BlockParams{MaxGas: maxBlockGas},
+		}),
+		&abci.RequestPrepareProposal{
+			Txs:        [][]byte{bz},
+			MaxTxBytes: int64(len(bz)) * 2,
+		},
+	)
+	s.Require().NoError(err)
+	// anteGasWanted (200) > maxBlockGas (100), so the tx must be excluded.
+	// Before the fix, txDeclaredGas (50) < maxBlockGas (100) would have caused
+	// the tx to be selected — exceeding block gas if executed.
+	s.Require().Empty(resp.Txs,
+		"PrepareProposal must reject txs whose ante-reported gasWanted exceeds MaxGas, regardless of tx.GetGas()")
+}
+
+// TestDefaultProposalHandler_FallsBackToTxGasWhenAnteReportsZero pins the
+// PrepareProposal guard against zero-GasWanted entries: when the stored value
+// is 0 (buggy/permissive ante, or a mempool that doesn't surface the ante
+// result), the selector must fall back to tx.GetGas() for MaxGas accounting,
+// otherwise a proposer can pack a block its own ProcessProposal would reject.
+func (s *ABCIUtilsTestSuite) TestDefaultProposalHandler_FallsBackToTxGasWhenAnteReportsZero() {
+	cdc := codectestutil.CodecOptions{}.NewCodec()
+	baseapptestutil.RegisterInterfaces(cdc.InterfaceRegistry())
+	txConfig := authtx.NewTxConfig(cdc, authtx.DefaultSignModes)
+
+	const (
+		txDeclaredGas = uint64(200)
+		maxBlockGas   = int64(100) // below the tx-declared limit
+	)
+
+	builder := txConfig.NewTxBuilder()
+	s.Require().NoError(builder.SetMsgs(
+		&baseapptestutil.MsgKeyValue{Value: []byte(`zero-ante-tx`)},
+	))
+	builder.SetGasLimit(txDeclaredGas)
+	privKey := secp256k1.GenPrivKeyFromSecret([]byte("zero-ante-secret"))
+	setTxSignatureWithSecret(s.T(), builder, signingtypes.SignatureV2{
+		PubKey:   privKey.PubKey(),
+		Sequence: 1,
+		Data:     &signingtypes.SingleSignatureData{},
+	})
+	tx := builder.GetTx()
+
+	bz, err := txConfig.TxEncoder()(tx)
+	s.Require().NoError(err)
+
+	ctrl := gomock.NewController(s.T())
+	app := mock.NewMockProposalTxVerifier(ctrl)
+	app.EXPECT().PrepareProposalVerifyTx(tx).Return(bz, nil).AnyTimes()
+
+	mp := mempool.NewPriorityMempool(mempool.DefaultPriorityNonceMempoolConfig())
+	// Insert with GasWanted=0 to simulate an ante that failed to report a
+	// value (or a mempool that doesn't surface it).
+	s.Require().NoError(mp.Insert(
+		s.ctx.WithPriority(1), tx,
+		mempool.InsertOption{GasWanted: 0},
+	))
+
+	ph := baseapp.NewDefaultProposalHandler(mp, app)
+	resp, err := ph.PrepareProposalHandler()(
+		s.ctx.WithConsensusParams(cmtproto.ConsensusParams{
+			Block: &cmtproto.BlockParams{MaxGas: maxBlockGas},
+		}),
+		&abci.RequestPrepareProposal{
+			Txs:        [][]byte{bz},
+			MaxTxBytes: int64(len(bz)) * 2,
+		},
+	)
+	s.Require().NoError(err)
+	// Without the fallback, gasWanted=0 would slip the tx into the block even
+	// though its declared gas (200) blows past MaxGas (100); ProcessProposal
+	// would then reject the proposer's own block.
+	s.Require().Empty(resp.Txs,
+		"PrepareProposal must use tx.GetGas() when the stored ante GasWanted is 0")
 }
 
 func marshalDelimitedFn(msg proto.Message) ([]byte, error) {
